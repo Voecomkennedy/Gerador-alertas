@@ -195,6 +195,15 @@
     font-weight: 600;
     letter-spacing: 1px;
     margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .alert-ts {
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--gray-2);
   }
 
   .alert-route {
@@ -471,7 +480,8 @@
     margin: 4px 0;
   }
 
-  .detail-airline { font-size: 13px; color: var(--gray-1); margin-bottom: 8px; }
+  .detail-airline { font-size: 13px; color: var(--gray-1); margin-bottom: 4px; }
+  .detail-ts { font-size: 11px; color: var(--gray-2); margin-bottom: 8px; }
 
   .detail-pix {
     font-size: 28px;
@@ -1548,6 +1558,13 @@ function brlFloor(v) {
   return 'R$ ' + Math.floor(v).toLocaleString('pt-BR');
 }
 
+function formatTs(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} às ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 function airlineName(a) {
   const n = { LATAM: 'LATAM', SMILES: 'SMILES', GOL: 'GOL', AZUL: 'AZUL', TAP: 'TAP', OUTRO: '' };
   return n[a] !== undefined ? n[a] : a;
@@ -1566,33 +1583,46 @@ function sanitizeLink(raw) {
 // ─────────────────────────────────────────────
 function buildWhatsApp(alert) {
   const c = calcAlert(alert.airline, alert.miles, alert.taxes, alert.mkt, alert.sellRate || 0, alert.pix, alert.type, alert.rate);
-  const pix = alert.pix || c.minPix;
-  const maxInst = pix >= 1000 ? 10 : 5;
+  const finalPix = c.finalPix;
+  const maxInst = finalPix >= 1000 ? 10 : 5;
   const instFee = INST_FEES[maxInst];
-  const instTotal = pix * (1 + instFee / 100);
+  const instTotal = finalPix * (1 + instFee / 100);
   const perInst = instTotal / maxInst;
-  const economy = alert.mkt - pix;
+  const economy = alert.mkt > 0 ? alert.mkt - finalPix : 0;
 
   const aName = (alert.airline === 'OUTRO' || alert.airline === 'AZUL' || alert.airline === 'TAP')
     ? (alert.airname || airlineName(alert.airline))
     : airlineName(alert.airline);
 
-  let txt = `✈️ ${alert.origin} ⇄ ${alert.dest} por ${brlFloor(pix)}?`;
-  if (alert.direct) txt += `\n✈️ Voo Direto`;
-  txt += `\n\n${alert.origin} ➡️ ${alert.dest} ${alert.flag || ''}`;
-  txt += `\n\n🏢 ${aName}`;
-  txt += `\n\n💰 ${brl(pix)} via Pix`;
+  // Normalize date strings: split on commas, newlines, spaces or existing · — rejoin with ·
+  const normDates = (raw) => {
+    if (!raw) return null;
+    const parts = raw.split(/\s*[,·\n]\s*|\s{2,}/).map(d => d.trim()).filter(Boolean);
+    return parts.length ? parts.join(' · ') : raw.trim();
+  };
+
+  let txt = `✈️ *${alert.origin} → ${alert.dest}*`;
+  txt += `\n\n*${aName}* | Preço final com taxas`;
+  txt += `\n\n💰 ${brl(finalPix)} via Pix`;
   txt += `\n💳 ${maxInst}x de ${brl(perInst)} no cartão`;
-  txt += `\n\nCompanhia aérea: ${brl(alert.mkt)}`;
-  txt += `\nComigo você paga: ${brl(pix)}`;
-  txt += `\nSua economia real: ${brl(economy)}`;
-  txt += `\n\n✅ Incluso: emissão, suporte completo até o embarque e suporte jurídico.`;
-  txt += `\n\n📅 Ida: ${alert.dOut || '—'}`;
-  txt += `\n📅 Volta: ${alert.dIn || '—'}`;
-  txt += `\n\n👉 PARA EMITIR: Encaminhe esta mensagem no privado informando a data de ida, volta e a quantidade de passageiros.`;
-  txt += `\n\n⚠️ Preço real com taxas. Sujeito a disponibilidade da malha aérea.`;
-  txt += `\n\nRef: ${alert.ref}`;
-  txt += `\nVOECOMKENNEDY ®️`;
+  if (alert.mkt > 0) {
+    txt += `\n\n~~${brl(alert.mkt)}~~ → *${brl(finalPix)}*`;
+    txt += `\nEconomia de *${brl(economy)}* por pessoa`;
+  }
+  txt += `\n\nIncluso: emissão + suporte até o embarque + assessoria jurídica`;
+  const dOut = normDates(alert.dOut);
+  if (dOut) {
+    txt += `\n\n📅 *Datas de ida disponíveis:*`;
+    txt += `\n${dOut}`;
+  }
+  const dIn = normDates(alert.dIn);
+  if (dIn) {
+    txt += `\n\n📅 *Datas de volta disponíveis:*`;
+    txt += `\n${dIn}`;
+  }
+  txt += `\n\n👉 *Para emitir:* me chama no privado com a data de ida, volta e número de passageiros.`;
+  txt += `\n\nSujeito à disponibilidade. | Ref: ${alert.ref}`;
+  txt += `\n_VoeComKennedy_`;
   return txt;
 }
 
@@ -1797,7 +1827,7 @@ function renderAlertList() {
 
     return `<div class="alert-card" onclick="openDetail('${a.id}')">
       <div class="alert-card-body">
-        <div class="alert-ref">REF: ${a.ref}</div>
+        <div class="alert-ref">REF: ${a.ref}${a.ts ? `<span class="alert-ts">${formatTs(a.ts)}</span>` : ''}</div>
         <div class="alert-route">${a.origin || '?'} ⇄ ${a.dest || '?'} ${a.flag || ''}</div>
         <div class="alert-airline">${aName}</div>
       </div>
@@ -1850,6 +1880,7 @@ function renderDetail(alert) {
           <div class="detail-ref">REF: ${alert.ref}</div>
           <div class="detail-route">${alert.origin || '?'} ⇄ ${alert.dest || '?'} ${alert.flag || ''}</div>
           <div class="detail-airline">${aName} &bull; <span class="badge ${alert.type === 'intl' ? 'badge-intl' : 'badge-nac'}">${alert.type === 'intl' ? 'INTL' : 'NAC'}</span></div>
+          ${alert.ts ? `<div class="detail-ts">Gerado em ${formatTs(alert.ts)}</div>` : ''}
         </div>
         <button class="detail-edit-btn" onclick="editAlert('${alert.id}')">Editar</button>
       </div>
