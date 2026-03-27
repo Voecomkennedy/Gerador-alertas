@@ -1910,31 +1910,29 @@ function renderDetail(alert) {
     <div class="copy-block">
       <div class="copy-block-top">
         <div class="copy-block-title">WHATSAPP</div>
-        <button class="btn-sm btn-gold" onclick="copyText(whatsAppText_${alert.id.replace(/[^a-z0-9]/gi,'')}, this)">Copiar</button>
+        <button class="btn-sm btn-gold" data-copy="${escAttr(waCopy)}" onclick="copyText(this.dataset.copy, this)">Copiar</button>
       </div>
-      <div class="copy-text" id="wa-text">${escHtml(waCopy)}</div>
+      <div class="copy-text">${escHtml(waCopy)}</div>
     </div>
 
     <div class="copy-block">
       <div class="copy-block-top">
         <div class="copy-block-title">HTML CARD</div>
-        <button class="btn-sm btn-gold" onclick="copyText(htmlCardText_${alert.id.replace(/[^a-z0-9]/gi,'')}, this)">Copiar</button>
+        <button class="btn-sm btn-gold" data-copy="${escAttr(htmlCopy)}" onclick="copyText(this.dataset.copy, this)">Copiar</button>
       </div>
       <div class="copy-text">${escHtml(htmlCopy)}</div>
     </div>
 
     <button class="btn btn-red" onclick="confirmDelete('${alert.id}')">Excluir alerta</button>
     <div style="height:8px"></div>
-
-    <script>
-      var whatsAppText_${alert.id.replace(/[^a-z0-9]/gi,'')} = ${JSON.stringify(waCopy)};
-      var htmlCardText_${alert.id.replace(/[^a-z0-9]/gi,'')} = ${JSON.stringify(htmlCopy)};
-    <\/script>
   `;
 }
 
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
 }
 
 function backToList() {
