@@ -1585,7 +1585,7 @@ function buildWhatsApp(alert) {
   let finalPix;
 
   if (alert.paymentMode === 'avista') {
-    finalPix = (alert.avistaBase || 0) + (alert.avistaLucro || 0);
+    finalPix = (alert.avistaBase || 0) + (alert.avistaLucro || 0); // preço cartão
   } else {
     const c = calcAlert(alert.airline, alert.miles, alert.taxes, alert.mkt, alert.sellRate || 0, alert.pix, alert.type, alert.rate);
     finalPix = c.finalPix;
@@ -1620,11 +1620,25 @@ function buildWhatsApp(alert) {
 
   let txt = `✈️ *${alert.origin} → ${alert.dest}*`;
   txt += `\n\n*${aName}* | Preço final com taxas`;
-  txt += `\n\n💰 ${brl(finalPix)}${alert.paymentMode === 'avista' ? ' à vista' : ' via Pix'}`;
-  txt += instLine;
-  if (alert.mkt > 0) {
-    txt += `\n\n~${brl(alert.mkt)}~ → *${brl(finalPix)}*`;
-    txt += `\nEconomia de *${brl(economy)}* por pessoa`;
+  if (alert.paymentMode === 'avista' && alert.pixDesconto > 0) {
+    // Modo Valor Direto COM desconto Pix — mostra os dois preços
+    const pixPrice = finalPix - alert.pixDesconto;
+    const instPart = alert.semJuros && alert.semJurosParc > 0
+      ? ` | ${alert.semJurosParc}x de ${brl(finalPix / alert.semJurosParc)} sem juros`
+      : '';
+    txt += `\n\n💳 ~${brl(finalPix)}~ no cartão${instPart}`;
+    txt += `\n💰 *${brl(pixPrice)} no Pix* — economia de *${brl(alert.pixDesconto)}*`;
+    if (alert.mkt > 0) {
+      txt += `\n\n~${brl(alert.mkt)}~ → *${brl(pixPrice)}*`;
+      txt += `\nEconomia de *${brl(alert.mkt - pixPrice)}* por pessoa`;
+    }
+  } else {
+    txt += `\n\n💰 ${brl(finalPix)}${alert.paymentMode === 'avista' ? ' à vista' : ' via Pix'}`;
+    txt += instLine;
+    if (alert.mkt > 0) {
+      txt += `\n\n~${brl(alert.mkt)}~ → *${brl(finalPix)}*`;
+      txt += `\nEconomia de *${brl(economy)}* por pessoa`;
+    }
   }
   txt += `\n\nIncluso: emissão + suporte até o embarque + assessoria jurídica`;
   const dOut = normDates(alert.dOut);
@@ -1878,13 +1892,19 @@ function renderDetail(alert) {
   let pix, profitColor, financeRows;
 
   if (isAvista) {
-    pix = (alert.avistaBase || 0) + (alert.avistaLucro || 0);
-    const economy = alert.mkt > 0 ? alert.mkt - pix : 0;
+    pix = (alert.avistaBase || 0) + (alert.avistaLucro || 0); // preço cartão
+    const pixDesc    = alert.pixDesconto || 0;
+    const pixPrice   = pixDesc > 0 ? pix - pixDesc : 0;
+    const economy    = alert.mkt > 0 ? alert.mkt - (pixPrice || pix) : 0;
     profitColor = 'green';
     financeRows = `
       <div class="fin-row"><span style="color:var(--gray-1)">Valor base</span><span>${brl(alert.avistaBase || 0)}</span></div>
       <div class="fin-row"><span style="color:var(--gray-1)">Lucro</span><span style="color:var(--green);font-weight:700">${brl(alert.avistaLucro || 0)}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Total ao cliente</span><span style="color:var(--gold);font-weight:700">${brl(pix)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Preço no cartão</span><span style="color:var(--gold);font-weight:700">${brl(pix)}</span></div>
+      ${pixDesc > 0 ? `
+      <div class="fin-row"><span style="color:var(--gray-1)">Desconto Pix</span><span style="color:var(--red);font-weight:700">- ${brl(pixDesc)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Preço no Pix</span><span style="color:var(--green);font-weight:700">${brl(pixPrice)}</span></div>
+      ` : ''}
       ${alert.mkt > 0 ? `<div class="fin-row"><span style="color:var(--gray-1)">Economia cliente</span><span style="color:var(--green);font-weight:700">${brl(economy)}</span></div>` : ''}
     `;
   } else {
@@ -2156,6 +2176,10 @@ function renderForm() {
           <label class="form-label">PRECO CIA (R$)</label>
           <input class="form-input" id="f-mkt" type="number" inputmode="decimal" placeholder="para comparação" step="0.01" oninput="mktManual=true;updateCalc()">
         </div>
+        <div class="form-group">
+          <label class="form-label" style="color:var(--gray-2)">DESCONTO PIX (R$) — opcional</label>
+          <input class="form-input" id="f-pix-desconto" type="number" inputmode="decimal" placeholder="ex: 100,00" step="0.01" oninput="updateCalc()" style="opacity:0.7">
+        </div>
       </div>
     </div>
     `}
@@ -2232,8 +2256,9 @@ function initForm() {
       setVal('f-taxes',  a.taxes);
       setVal('f-mkt',    a.mkt);
       setVal('f-pix',    a.pix || '');
-      setVal('f-avista',       a.avistaBase  || '');
-      setVal('f-avista-lucro', a.avistaLucro || '');
+      setVal('f-avista',        a.avistaBase   || '');
+      setVal('f-avista-lucro',  a.avistaLucro  || '');
+      setVal('f-pix-desconto',  a.pixDesconto  || '');
       setVal('f-dout',   a.dOut);
       setVal('f-din',    a.dIn);
       setVal('f-link',   a.link);
@@ -2338,14 +2363,16 @@ function updateCalc() {
 
   // ── MODO VALOR DIRETO ──
   if (fPayment === 'avista') {
-    const avistaBase  = getNum('f-avista');
-    const avistaLucro = getNum('f-avista-lucro');
+    const avistaBase   = getNum('f-avista');
+    const avistaLucro  = getNum('f-avista-lucro');
+    const pixDesconto  = getNum('f-pix-desconto');
     if (avistaBase <= 0) {
       el.innerHTML = '<div style="color:var(--gray-2);font-size:13px">Preencha o valor à vista para calcular.</div>';
       return;
     }
-    const finalPix = avistaBase + avistaLucro;
-    const instLine = fSemJuros && fSemJurosParc > 0
+    const finalPix  = avistaBase + avistaLucro;         // preço cartão
+    const pixPrice  = pixDesconto > 0 ? finalPix - pixDesconto : 0; // preço Pix com desconto
+    const instLine  = fSemJuros && fSemJurosParc > 0
       ? `${fSemJurosParc}x de ${brl(finalPix / fSemJurosParc)} sem juros`
       : `—`;
     el.innerHTML = `
@@ -2358,16 +2385,24 @@ function updateCalc() {
         <span class="calc-val green"><strong>${brl(avistaLucro)}</strong></span>
       </div>
       <div class="calc-row">
-        <span class="calc-lbl">Total ao cliente</span>
+        <span class="calc-lbl">Preço no cartão</span>
         <span class="calc-val gold">${brl(finalPix)}</span>
       </div>
+      ${pixDesconto > 0 ? `<div class="calc-row">
+        <span class="calc-lbl">Desconto Pix</span>
+        <span class="calc-val red">- ${brl(pixDesconto)}</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-lbl"><strong>Preço no Pix</strong></span>
+        <span class="calc-val green"><strong>${brl(pixPrice)}</strong></span>
+      </div>` : ''}
       ${fSemJuros && fSemJurosParc > 0 ? `<div class="calc-row">
         <span class="calc-lbl">Parcelas sem juros</span>
         <span class="calc-val">${instLine}</span>
       </div>` : ''}
       ${mkt > 0 ? `<div class="calc-row">
-        <span class="calc-lbl">Economia cliente</span>
-        <span class="calc-val green">${brl(mkt - finalPix)}</span>
+        <span class="calc-lbl">Economia cliente (vs CIA)</span>
+        <span class="calc-val green">${brl(mkt - (pixDesconto > 0 ? pixPrice : finalPix))}</span>
       </div>` : ''}
     `;
     return;
@@ -2470,9 +2505,11 @@ function saveForm() {
   let miles = 0, taxes = 0, sellRate = 0, pixIn = 0, rate = 0, finalPix = 0;
   let avistaBase = 0, avistaLucro = 0;
 
+  let pixDesconto = 0;
   if (fPayment === 'avista') {
-    avistaBase  = getNum('f-avista');
-    avistaLucro = getNum('f-avista-lucro');
+    avistaBase   = getNum('f-avista');
+    avistaLucro  = getNum('f-avista-lucro');
+    pixDesconto  = getNum('f-pix-desconto');
     if (avistaBase <= 0) { showToast('Preencha o valor à vista'); return; }
     finalPix = avistaBase + avistaLucro;
   } else {
@@ -2524,6 +2561,7 @@ function saveForm() {
         paymentMode:  fPayment,
         avistaBase,
         avistaLucro,
+        pixDesconto,
         semJuros,
         semJurosParc,
       };
@@ -2562,6 +2600,7 @@ function saveForm() {
       paymentMode:  fPayment,
       avistaBase,
       avistaLucro,
+      pixDesconto,
       semJuros,
       semJurosParc,
       ts:           Date.now(),
