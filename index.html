@@ -1582,13 +1582,30 @@ function sanitizeLink(raw) {
 // WHATSAPP COPY
 // ─────────────────────────────────────────────
 function buildWhatsApp(alert) {
-  const c = calcAlert(alert.airline, alert.miles, alert.taxes, alert.mkt, alert.sellRate || 0, alert.pix, alert.type, alert.rate);
-  const finalPix = c.finalPix;
-  const maxInst = finalPix >= 1000 ? 10 : 5;
-  const instFee = INST_FEES[maxInst];
-  const instTotal = finalPix * (1 + instFee / 100);
-  const perInst = instTotal / maxInst;
+  let finalPix;
+
+  if (alert.paymentMode === 'avista') {
+    finalPix = (alert.avistaBase || 0) + (alert.avistaLucro || 0);
+  } else {
+    const c = calcAlert(alert.airline, alert.miles, alert.taxes, alert.mkt, alert.sellRate || 0, alert.pix, alert.type, alert.rate);
+    finalPix = c.finalPix;
+  }
+
   const economy = alert.mkt > 0 ? alert.mkt - finalPix : 0;
+
+  // Linha de parcelamento
+  let instLine;
+  if (alert.semJuros && alert.semJurosParc > 0) {
+    instLine = `\n💳 ${alert.semJurosParc}x de ${brl(finalPix / alert.semJurosParc)} sem juros`;
+  } else if (alert.paymentMode !== 'avista') {
+    const maxInst   = finalPix >= 1000 ? 10 : 5;
+    const instFee   = INST_FEES[maxInst];
+    const instTotal = finalPix * (1 + instFee / 100);
+    const perInst   = instTotal / maxInst;
+    instLine = `\n💳 ${maxInst}x de ${brl(perInst)} no cartão`;
+  } else {
+    instLine = '';
+  }
 
   const aName = (alert.airline === 'OUTRO' || alert.airline === 'AZUL' || alert.airline === 'TAP')
     ? (alert.airname || airlineName(alert.airline))
@@ -1603,10 +1620,10 @@ function buildWhatsApp(alert) {
 
   let txt = `✈️ *${alert.origin} → ${alert.dest}*`;
   txt += `\n\n*${aName}* | Preço final com taxas`;
-  txt += `\n\n💰 ${brl(finalPix)} via Pix`;
-  txt += `\n💳 ${maxInst}x de ${brl(perInst)} no cartão`;
+  txt += `\n\n💰 ${brl(finalPix)}${alert.paymentMode === 'avista' ? ' à vista' : ' via Pix'}`;
+  txt += instLine;
   if (alert.mkt > 0) {
-    txt += `\n\n~~${brl(alert.mkt)}~~ → *${brl(finalPix)}*`;
+    txt += `\n\n~${brl(alert.mkt)}~ → *${brl(finalPix)}*`;
     txt += `\nEconomia de *${brl(economy)}* por pessoa`;
   }
   txt += `\n\nIncluso: emissão + suporte até o embarque + assessoria jurídica`;
@@ -1620,7 +1637,7 @@ function buildWhatsApp(alert) {
     txt += `\n\n📅 *Datas de volta disponíveis:*`;
     txt += `\n${dIn}`;
   }
-  txt += `\n\n👉 *Para emitir:* me chama no privado com a data de ida, volta e número de passageiros.`;
+  txt += `\n\n👉 *Para emitir:* só me encaminhar a referência no privado.`;
   txt += `\n\nSujeito à disponibilidade. | Ref: ${alert.ref}`;
   txt += `\n_VoeComKennedy_`;
   return txt;
@@ -1723,6 +1740,9 @@ let editingId     = null;
 let fAirline  = 'LATAM';
 let fType     = 'intl';
 let mktManual = false;   // true quando usuario editou f-mkt manualmente
+let fPayment      = 'milhas'; // 'milhas' | 'avista'
+let fSemJuros     = false;
+let fSemJurosParc = 2;
 
 // Copy texts — evita perda de \n em data-attributes do innerHTML
 window._copyTexts = { wa: '', html: '' };
@@ -1854,15 +1874,47 @@ function openDetail(id) {
 }
 
 function renderDetail(alert) {
-  const c = calcAlert(alert.airline, alert.miles, alert.taxes, alert.mkt, alert.sellRate || 0, alert.pix, alert.type, alert.rate);
-  const pix = alert.pix || c.minPix;
-  const maxInst = pix >= 1000 ? 10 : 5;
-  const instFee = INST_FEES[maxInst];
-  const instTotal = pix * (1 + instFee / 100);
-  const perInst   = instTotal / maxInst;
-  const economy   = alert.mkt - pix;
+  const isAvista = alert.paymentMode === 'avista';
+  let pix, profitColor, financeRows;
 
-  const profitColor = c.profit >= c.floor ? 'green' : 'red';
+  if (isAvista) {
+    pix = (alert.avistaBase || 0) + (alert.avistaLucro || 0);
+    const economy = alert.mkt > 0 ? alert.mkt - pix : 0;
+    profitColor = 'green';
+    financeRows = `
+      <div class="fin-row"><span style="color:var(--gray-1)">Valor base</span><span>${brl(alert.avistaBase || 0)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Lucro</span><span style="color:var(--green);font-weight:700">${brl(alert.avistaLucro || 0)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Total ao cliente</span><span style="color:var(--gold);font-weight:700">${brl(pix)}</span></div>
+      ${alert.mkt > 0 ? `<div class="fin-row"><span style="color:var(--gray-1)">Economia cliente</span><span style="color:var(--green);font-weight:700">${brl(economy)}</span></div>` : ''}
+    `;
+  } else {
+    const c = calcAlert(alert.airline, alert.miles, alert.taxes, alert.mkt, alert.sellRate || 0, alert.pix, alert.type, alert.rate);
+    pix = alert.pix || c.minPix;
+    const economy = alert.mkt - pix;
+    profitColor = c.profit >= c.floor ? 'green' : 'red';
+    financeRows = `
+      <div class="fin-row"><span style="color:var(--gray-1)">Custo milhas</span><span>${brl(c.milesCost)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Taxas</span><span>${brl(alert.taxes)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Custo total</span><span>${brl(c.totalCost)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Preco Pix</span><span style="color:var(--gold);font-weight:700">${brl(pix)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Lucro</span><span style="color:var(--${profitColor});font-weight:700">${brl(c.profit)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Economia cliente</span><span style="color:var(--green);font-weight:700">${brl(economy)}</span></div>
+    `;
+  }
+
+  // Linha de parcelamento no header
+  let instDesc;
+  if (alert.semJuros && alert.semJurosParc > 0) {
+    instDesc = `${alert.semJurosParc}x de ${brl(pix / alert.semJurosParc)} sem juros`;
+  } else if (!isAvista) {
+    const maxInst   = pix >= 1000 ? 10 : 5;
+    const instFee   = INST_FEES[maxInst];
+    const instTotal = pix * (1 + instFee / 100);
+    const perInst   = instTotal / maxInst;
+    instDesc = `${maxInst}x de ${brl(perInst)} no cartao`;
+  } else {
+    instDesc = '';
+  }
 
   const aName = (alert.airline === 'OUTRO' || alert.airline === 'AZUL' || alert.airline === 'TAP') && alert.airname
     ? alert.airname : airlineName(alert.airline);
@@ -1891,18 +1943,13 @@ function renderDetail(alert) {
         <button class="detail-edit-btn" onclick="editAlert('${alert.id}')">Editar</button>
       </div>
       <div class="detail-pix">${brl(pix)}</div>
-      <div class="detail-inst">${maxInst}x de ${brl(perInst)} no cartao</div>
+      ${instDesc ? `<div class="detail-inst">${instDesc}</div>` : ''}
       ${alert.direct ? '<div style="margin-top:6px;font-size:12px;color:var(--gold);font-weight:700;">VOO DIRETO</div>' : ''}
     </div>
 
     <div class="financial-box">
       <div class="fin-title">FINANCEIRO</div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Custo milhas</span><span>${brl(c.milesCost)}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Taxas</span><span>${brl(alert.taxes)}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Custo total</span><span>${brl(c.totalCost)}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Preco Pix</span><span style="color:var(--gold);font-weight:700">${brl(pix)}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Lucro</span><span style="color:var(--${profitColor});font-weight:700">${brl(c.profit)}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Economia cliente</span><span style="color:var(--green);font-weight:700">${brl(economy)}</span></div>
+      ${financeRows}
     </div>
 
     <div class="financial-box">
@@ -2053,6 +2100,15 @@ function renderForm() {
     </div>
 
     <div class="form-section">
+      <div class="form-label">MODO</div>
+      <div class="toggle-wrap">
+        <button class="toggle-opt ${fPayment === 'milhas' ? 'active' : ''}" onclick="selectPayment('milhas')">Por Milhas</button>
+        <button class="toggle-opt ${fPayment === 'avista' ? 'active' : ''}" onclick="selectPayment('avista')">Valor Direto</button>
+      </div>
+    </div>
+
+    ${fPayment === 'milhas' ? `
+    <div class="form-section">
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">MILHAS</label>
@@ -2080,6 +2136,44 @@ function renderForm() {
         <div class="form-group">
           <label class="form-label" style="color:var(--gray-2)">PIX OVERRIDE (opcional)</label>
           <input class="form-input" id="f-pix" type="number" inputmode="decimal" placeholder="so se quiser fixar" step="0.01" oninput="updateCalc()" style="opacity:0.7">
+        </div>
+      </div>
+    </div>
+    ` : `
+    <div class="form-section">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">VALOR À VISTA (R$)</label>
+          <input class="form-input" id="f-avista" type="number" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">MEU LUCRO (R$)</label>
+          <input class="form-input" id="f-avista-lucro" type="number" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:8px">
+        <div class="form-group">
+          <label class="form-label">PRECO CIA (R$)</label>
+          <input class="form-input" id="f-mkt" type="number" inputmode="decimal" placeholder="para comparação" step="0.01" oninput="mktManual=true;updateCalc()">
+        </div>
+      </div>
+    </div>
+    `}
+
+    <div class="form-section">
+      <div class="form-row" style="align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="flex:0 0 auto">
+          <div class="switch-wrap">
+            <label class="switch">
+              <input type="checkbox" id="f-semjuros" ${fSemJuros ? 'checked' : ''} onchange="toggleSemJuros(this.checked)">
+              <span class="slider"></span>
+            </label>
+            <span class="switch-label">Sem Juros</span>
+          </div>
+        </div>
+        <div id="semjuros-wrap" style="${fSemJuros ? 'flex:1;min-width:130px' : 'display:none'}">
+          <label class="form-label">Nº PARCELAS SEM JUROS</label>
+          <input class="form-input" id="f-semjurosparc" type="number" inputmode="numeric" min="1" max="24" placeholder="Ex: 6" value="${fSemJurosParc}" oninput="fSemJurosParc=parseInt(this.value)||2;updateCalc()">
         </div>
       </div>
     </div>
@@ -2123,8 +2217,11 @@ function initForm() {
     const alerts = loadAlerts();
     const a = alerts.find(x => x.id === editingId);
     if (a) {
-      fAirline = a.airline;
-      fType    = a.type;
+      fAirline   = a.airline;
+      fType      = a.type;
+      fPayment   = a.paymentMode || 'milhas';
+      fSemJuros  = !!a.semJuros;
+      fSemJurosParc = a.semJurosParc || 2;
       // Re-render to set selected states
       document.getElementById('main').innerHTML = renderForm();
       // Now fill values
@@ -2135,6 +2232,8 @@ function initForm() {
       setVal('f-taxes',  a.taxes);
       setVal('f-mkt',    a.mkt);
       setVal('f-pix',    a.pix || '');
+      setVal('f-avista',       a.avistaBase  || '');
+      setVal('f-avista-lucro', a.avistaLucro || '');
       setVal('f-dout',   a.dOut);
       setVal('f-din',    a.dIn);
       setVal('f-link',   a.link);
@@ -2167,6 +2266,20 @@ function selectType(t) {
   document.querySelectorAll('.toggle-opt').forEach(b => {
     b.classList.toggle('active', (t === 'intl' && b.textContent === 'Internacional') || (t === 'nac' && b.textContent === 'Nacional'));
   });
+  updateCalc();
+}
+
+function selectPayment(p) {
+  fPayment = p;
+  mktManual = false;
+  document.getElementById('main').innerHTML = renderForm();
+  initForm();
+}
+
+function toggleSemJuros(checked) {
+  fSemJuros = checked;
+  const wrap = document.getElementById('semjuros-wrap');
+  if (wrap) wrap.style.display = fSemJuros ? '' : 'none';
   updateCalc();
 }
 
@@ -2219,15 +2332,53 @@ function getNum(id) {
 }
 
 function updateCalc() {
+  const el = document.getElementById('calc-rows');
+  if (!el) return;
+  const mkt = getNum('f-mkt');
+
+  // ── MODO VALOR DIRETO ──
+  if (fPayment === 'avista') {
+    const avistaBase  = getNum('f-avista');
+    const avistaLucro = getNum('f-avista-lucro');
+    if (avistaBase <= 0) {
+      el.innerHTML = '<div style="color:var(--gray-2);font-size:13px">Preencha o valor à vista para calcular.</div>';
+      return;
+    }
+    const finalPix = avistaBase + avistaLucro;
+    const instLine = fSemJuros && fSemJurosParc > 0
+      ? `${fSemJurosParc}x de ${brl(finalPix / fSemJurosParc)} sem juros`
+      : `—`;
+    el.innerHTML = `
+      <div class="calc-row">
+        <span class="calc-lbl">Valor base</span>
+        <span class="calc-val">${brl(avistaBase)}</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-lbl"><strong>Lucro</strong></span>
+        <span class="calc-val green"><strong>${brl(avistaLucro)}</strong></span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-lbl">Total ao cliente</span>
+        <span class="calc-val gold">${brl(finalPix)}</span>
+      </div>
+      ${fSemJuros && fSemJurosParc > 0 ? `<div class="calc-row">
+        <span class="calc-lbl">Parcelas sem juros</span>
+        <span class="calc-val">${instLine}</span>
+      </div>` : ''}
+      ${mkt > 0 ? `<div class="calc-row">
+        <span class="calc-lbl">Economia cliente</span>
+        <span class="calc-val green">${brl(mkt - finalPix)}</span>
+      </div>` : ''}
+    `;
+    return;
+  }
+
+  // ── MODO MILHAS ──
   const miles    = getNum('f-miles');
   const taxes    = getNum('f-taxes');
-  const mkt      = getNum('f-mkt');
   const sellRate = getNum('f-sellrate');
   const pixIn    = getNum('f-pix');
   const rate     = getNum('f-rate');
-
-  const el = document.getElementById('calc-rows');
-  if (!el) return;
 
   if (miles <= 0) {
     el.innerHTML = '<div style="color:var(--gray-2);font-size:13px">Preencha milhas e taxas para calcular.</div>';
@@ -2245,6 +2396,9 @@ function updateCalc() {
   }
 
   const profitOk = c.profit >= c.floor;
+  const instLbl  = fSemJuros && fSemJurosParc > 0
+    ? `${fSemJurosParc}x sem juros de ${brl(c.finalPix / fSemJurosParc)}`
+    : `${c.maxInst}x de ${brl(c.installments[c.maxInst-1].per)}`;
 
   el.innerHTML = `
     <div class="calc-row">
@@ -2291,8 +2445,8 @@ function updateCalc() {
       <span class="calc-val ${profitOk ? 'green' : 'red'}"><strong>${brl(c.profit)}</strong></span>
     </div>
     <div class="calc-row">
-      <span class="calc-lbl">Parcelamento ${c.maxInst}x</span>
-      <span class="calc-val">${brl(c.installments[c.maxInst-1].per)}/x</span>
+      <span class="calc-lbl">Parcelamento</span>
+      <span class="calc-val">${instLbl}</span>
     </div>
     ${mkt > 0 ? `<div class="calc-row">
       <span class="calc-lbl">Economia cliente</span>
@@ -2305,18 +2459,32 @@ function updateCalc() {
 function saveForm() {
   const origin   = (document.getElementById('f-origin')?.value || '').trim();
   const dest     = (document.getElementById('f-dest')?.value   || '').trim();
-  const miles    = getNum('f-miles');
-  const taxes    = getNum('f-taxes');
   const mkt      = getNum('f-mkt');
-  const sellRate = getNum('f-sellrate');
-  const pixIn    = getNum('f-pix');
-  const rate     = getNum('f-rate');
+
+  // Sem juros
+  const semJuros     = document.getElementById('f-semjuros')?.checked || false;
+  const semJurosParc = parseInt(document.getElementById('f-semjurosparc')?.value) || 2;
 
   if (!origin || !dest) { showToast('Preencha origem e destino'); return; }
-  if (miles <= 0)       { showToast('Preencha as milhas');        return; }
 
-  const c = calcAlert(fAirline, miles, taxes, mkt, sellRate, pixIn, fType, rate);
-  const finalPix = c.finalPix;
+  let miles = 0, taxes = 0, sellRate = 0, pixIn = 0, rate = 0, finalPix = 0;
+  let avistaBase = 0, avistaLucro = 0;
+
+  if (fPayment === 'avista') {
+    avistaBase  = getNum('f-avista');
+    avistaLucro = getNum('f-avista-lucro');
+    if (avistaBase <= 0) { showToast('Preencha o valor à vista'); return; }
+    finalPix = avistaBase + avistaLucro;
+  } else {
+    miles    = getNum('f-miles');
+    taxes    = getNum('f-taxes');
+    sellRate = getNum('f-sellrate');
+    pixIn    = getNum('f-pix');
+    rate     = getNum('f-rate');
+    if (miles <= 0) { showToast('Preencha as milhas'); return; }
+    const c  = calcAlert(fAirline, miles, taxes, mkt, sellRate, pixIn, fType, rate);
+    finalPix = c.finalPix;
+  }
 
   const airname = (document.getElementById('f-airname')?.value || '').trim();
   const direct  = document.getElementById('f-direct')?.checked || false;
@@ -2327,35 +2495,43 @@ function saveForm() {
 
   const alerts = loadAlerts();
 
+  const resetFormState = () => {
+    fAirline = 'LATAM'; fType = 'intl'; mktManual = false;
+    fPayment = 'milhas'; fSemJuros = false; fSemJurosParc = 2;
+  };
+
   if (editingId) {
     const idx = alerts.findIndex(a => a.id === editingId);
     if (idx >= 0) {
       alerts[idx] = {
         ...alerts[idx],
-        airline: fAirline,
+        airline:      fAirline,
         airname,
         rate,
         sellRate,
-        type: fType,
+        type:         fType,
         origin,
         dest,
         flag,
         miles,
         taxes,
         mkt,
-        pix: finalPix,
+        pix:          finalPix,
         direct,
         dOut,
         dIn,
         link,
+        paymentMode:  fPayment,
+        avistaBase,
+        avistaLucro,
+        semJuros,
+        semJurosParc,
       };
       saveAlerts(alerts);
       showToast('Alerta atualizado');
       editingId = null;
       currentPage = 'list';
-      fAirline = 'LATAM';
-      fType = 'intl';
-      mktManual = false;
+      resetFormState();
       ['list','new','backup'].forEach(x => {
         document.getElementById('nb-' + x).classList.toggle('active', x === 'list');
       });
@@ -2365,32 +2541,35 @@ function saveForm() {
   } else {
     const ref = getNextRef();
     const newAlert = {
-      id:       genId(),
+      id:           genId(),
       ref,
-      airline:  fAirline,
+      airline:      fAirline,
       airname,
       rate,
       sellRate,
-      type:     fType,
+      type:         fType,
       origin,
       dest,
       flag,
       miles,
       taxes,
       mkt,
-      pix:      finalPix,
+      pix:          finalPix,
       direct,
       dOut,
       dIn,
       link,
-      ts:       Date.now(),
+      paymentMode:  fPayment,
+      avistaBase,
+      avistaLucro,
+      semJuros,
+      semJurosParc,
+      ts:           Date.now(),
     };
     alerts.push(newAlert);
     saveAlerts(alerts);
     showToast(`Alerta ${ref} criado!`);
-    fAirline = 'LATAM';
-    fType = 'intl';
-    mktManual = false;
+    resetFormState();
     setPage('list');
     setTimeout(() => { renderAlertList(); }, 0);
   }
@@ -2401,6 +2580,9 @@ function cancelForm() {
   fAirline = 'LATAM';
   fType = 'intl';
   mktManual = false;
+  fPayment = 'milhas';
+  fSemJuros = false;
+  fSemJurosParc = 2;
   if (currentDetail) {
     render();
   } else {
