@@ -1618,16 +1618,18 @@ function buildWhatsApp(alert) {
     return parts.length ? parts.join(' · ') : raw.trim();
   };
 
-  let txt = `✈️ *${alert.origin} → ${alert.dest}*`;
+  let txt = `✈️ *${alert.origin} → ${alert.dest}*${alert.direct ? ' ✈️ Voo Direto' : ''}`;
   txt += `\n\n*${aName}* | Preço final com taxas`;
   if (alert.paymentMode === 'avista' && alert.pixDesconto > 0) {
-    // Modo Valor Direto COM desconto Pix — mostra os dois preços
-    const pixPrice = finalPix - alert.pixDesconto;
-    const instPart = alert.semJuros && alert.semJurosParc > 0
+    // Modo Valor Direto COM valor no Pix — cartão fica com preço cheio
+    const pixPrice  = alert.pixDesconto; // IS o preço real no Pix
+    const economia  = finalPix - pixPrice;
+    const instPart  = alert.semJuros && alert.semJurosParc > 0
       ? ` | ${alert.semJurosParc}x de ${brl(finalPix / alert.semJurosParc)} sem juros`
       : '';
-    txt += `\n\n💳 ~${brl(finalPix)}~ no cartão${instPart}`;
-    txt += `\n💰 *${brl(pixPrice)} no Pix* — economia de *${brl(alert.pixDesconto)}*`;
+    txt += `\n\n💳 *${brl(finalPix)} no cartão*${instPart}`;
+    txt += `\n💰 ~${brl(finalPix)}~ → *${brl(pixPrice)} no Pix*`;
+    if (economia > 0) txt += ` — economia de *${brl(economia)}*`;
     if (alert.mkt > 0) {
       txt += `\n\n~${brl(alert.mkt)}~ → *${brl(pixPrice)}*`;
       txt += `\nEconomia de *${brl(alert.mkt - pixPrice)}* por pessoa`;
@@ -1639,6 +1641,10 @@ function buildWhatsApp(alert) {
       txt += `\n\n~${brl(alert.mkt)}~ → *${brl(finalPix)}*`;
       txt += `\nEconomia de *${brl(economy)}* por pessoa`;
     }
+  }
+  if (alert.boleto) {
+    const boletoVal = brl(finalPix / 10);
+    txt += `\n📄 Boleto: entrada + 9x de ${boletoVal} sem juros _(mediante aprovação)_`;
   }
   txt += `\n\nIncluso: emissão + suporte até o embarque + assessoria jurídica`;
   const dOut = normDates(alert.dOut);
@@ -1757,6 +1763,7 @@ let mktManual = false;   // true quando usuario editou f-mkt manualmente
 let fPayment      = 'milhas'; // 'milhas' | 'avista'
 let fSemJuros     = false;
 let fSemJurosParc = 2;
+let fBoleto       = false;
 
 // Copy texts — evita perda de \n em data-attributes do innerHTML
 window._copyTexts = { wa: '', html: '' };
@@ -1893,18 +1900,19 @@ function renderDetail(alert) {
 
   if (isAvista) {
     pix = (alert.avistaBase || 0) + (alert.avistaLucro || 0); // preço cartão
-    const pixDesc    = alert.pixDesconto || 0;
-    const pixPrice   = pixDesc > 0 ? pix - pixDesc : 0;
+    const pixPrice   = alert.pixDesconto || 0; // valor DIRETO no Pix
+    const economia   = pixPrice > 0 ? pix - pixPrice : 0;
     const economy    = alert.mkt > 0 ? alert.mkt - (pixPrice || pix) : 0;
     profitColor = 'green';
     financeRows = `
       <div class="fin-row"><span style="color:var(--gray-1)">Valor base</span><span>${brl(alert.avistaBase || 0)}</span></div>
       <div class="fin-row"><span style="color:var(--gray-1)">Lucro</span><span style="color:var(--green);font-weight:700">${brl(alert.avistaLucro || 0)}</span></div>
       <div class="fin-row"><span style="color:var(--gray-1)">Preço no cartão</span><span style="color:var(--gold);font-weight:700">${brl(pix)}</span></div>
-      ${pixDesc > 0 ? `
-      <div class="fin-row"><span style="color:var(--gray-1)">Desconto Pix</span><span style="color:var(--red);font-weight:700">- ${brl(pixDesc)}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Preço no Pix</span><span style="color:var(--green);font-weight:700">${brl(pixPrice)}</span></div>
+      ${pixPrice > 0 ? `
+      <div class="fin-row"><span style="color:var(--gray-1)">Valor no Pix</span><span style="color:var(--green);font-weight:700">${brl(pixPrice)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Economia no Pix</span><span style="color:var(--green);font-weight:700">- ${brl(economia)}</span></div>
       ` : ''}
+      ${alert.boleto ? `<div class="fin-row"><span style="color:var(--gray-1)">Boleto (entrada + 9x)</span><span>${brl(pix / 10)}/parcela</span></div>` : ''}
       ${alert.mkt > 0 ? `<div class="fin-row"><span style="color:var(--gray-1)">Economia cliente</span><span style="color:var(--green);font-weight:700">${brl(economy)}</span></div>` : ''}
     `;
   } else {
@@ -1919,6 +1927,7 @@ function renderDetail(alert) {
       <div class="fin-row"><span style="color:var(--gray-1)">Preco Pix</span><span style="color:var(--gold);font-weight:700">${brl(pix)}</span></div>
       <div class="fin-row"><span style="color:var(--gray-1)">Lucro</span><span style="color:var(--${profitColor});font-weight:700">${brl(c.profit)}</span></div>
       <div class="fin-row"><span style="color:var(--gray-1)">Economia cliente</span><span style="color:var(--green);font-weight:700">${brl(economy)}</span></div>
+      ${alert.boleto ? `<div class="fin-row"><span style="color:var(--gray-1)">Boleto (entrada + 9x)</span><span>${brl(pix / 10)}/parcela</span></div>` : ''}
     `;
   }
 
@@ -2177,16 +2186,16 @@ function renderForm() {
           <input class="form-input" id="f-mkt" type="number" inputmode="decimal" placeholder="para comparação" step="0.01" oninput="mktManual=true;updateCalc()">
         </div>
         <div class="form-group">
-          <label class="form-label" style="color:var(--gray-2)">DESCONTO PIX (R$) — opcional</label>
-          <input class="form-input" id="f-pix-desconto" type="number" inputmode="decimal" placeholder="ex: 100,00" step="0.01" oninput="updateCalc()" style="opacity:0.7">
+          <label class="form-label" style="color:var(--gray-2)">VALOR NO PIX (R$) — opcional</label>
+          <input class="form-input" id="f-pix-desconto" type="number" inputmode="decimal" placeholder="ex: 2800,00" step="0.01" oninput="updateCalc()" style="opacity:0.7">
         </div>
       </div>
     </div>
     `}
 
     <div class="form-section">
-      <div class="form-row" style="align-items:center;gap:16px;flex-wrap:wrap">
-        <div style="flex:0 0 auto">
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+        <div style="flex:0 0 auto;padding-top:2px">
           <div class="switch-wrap">
             <label class="switch">
               <input type="checkbox" id="f-semjuros" ${fSemJuros ? 'checked' : ''} onchange="toggleSemJuros(this.checked)">
@@ -2198,6 +2207,15 @@ function renderForm() {
         <div id="semjuros-wrap" style="${fSemJuros ? 'flex:1;min-width:130px' : 'display:none'}">
           <label class="form-label">Nº PARCELAS SEM JUROS</label>
           <input class="form-input" id="f-semjurosparc" type="number" inputmode="numeric" min="1" max="24" placeholder="Ex: 6" value="${fSemJurosParc}" oninput="fSemJurosParc=parseInt(this.value)||2;updateCalc()">
+        </div>
+        <div style="flex:0 0 auto;padding-top:2px">
+          <div class="switch-wrap">
+            <label class="switch">
+              <input type="checkbox" id="f-boleto" ${fBoleto ? 'checked' : ''} onchange="fBoleto=this.checked;updateCalc()">
+              <span class="slider"></span>
+            </label>
+            <span class="switch-label">Boleto</span>
+          </div>
         </div>
       </div>
     </div>
@@ -2241,11 +2259,12 @@ function initForm() {
     const alerts = loadAlerts();
     const a = alerts.find(x => x.id === editingId);
     if (a) {
-      fAirline   = a.airline;
-      fType      = a.type;
-      fPayment   = a.paymentMode || 'milhas';
-      fSemJuros  = !!a.semJuros;
+      fAirline      = a.airline;
+      fType         = a.type;
+      fPayment      = a.paymentMode || 'milhas';
+      fSemJuros     = !!a.semJuros;
       fSemJurosParc = a.semJurosParc || 2;
+      fBoleto       = !!a.boleto;
       // Re-render to set selected states
       document.getElementById('main').innerHTML = renderForm();
       // Now fill values
@@ -2365,16 +2384,18 @@ function updateCalc() {
   if (fPayment === 'avista') {
     const avistaBase   = getNum('f-avista');
     const avistaLucro  = getNum('f-avista-lucro');
-    const pixDesconto  = getNum('f-pix-desconto');
+    const pixValor     = getNum('f-pix-desconto'); // agora é o VALOR DIRETO no Pix
     if (avistaBase <= 0) {
       el.innerHTML = '<div style="color:var(--gray-2);font-size:13px">Preencha o valor à vista para calcular.</div>';
       return;
     }
-    const finalPix  = avistaBase + avistaLucro;         // preço cartão
-    const pixPrice  = pixDesconto > 0 ? finalPix - pixDesconto : 0; // preço Pix com desconto
+    const finalPix  = avistaBase + avistaLucro;                        // preço cartão
+    const pixPrice  = pixValor > 0 ? pixValor : 0;                    // preço Pix (direto)
+    const economia  = pixPrice > 0 ? finalPix - pixPrice : 0;         // economia no Pix
     const instLine  = fSemJuros && fSemJurosParc > 0
       ? `${fSemJurosParc}x de ${brl(finalPix / fSemJurosParc)} sem juros`
       : `—`;
+    const boletoVal = brl(finalPix / 10);
     el.innerHTML = `
       <div class="calc-row">
         <span class="calc-lbl">Valor base</span>
@@ -2388,21 +2409,25 @@ function updateCalc() {
         <span class="calc-lbl">Preço no cartão</span>
         <span class="calc-val gold">${brl(finalPix)}</span>
       </div>
-      ${pixDesconto > 0 ? `<div class="calc-row">
-        <span class="calc-lbl">Desconto Pix</span>
-        <span class="calc-val red">- ${brl(pixDesconto)}</span>
+      ${pixPrice > 0 ? `<div class="calc-row">
+        <span class="calc-lbl"><strong>Valor no Pix</strong></span>
+        <span class="calc-val green"><strong>${brl(pixPrice)}</strong></span>
       </div>
       <div class="calc-row">
-        <span class="calc-lbl"><strong>Preço no Pix</strong></span>
-        <span class="calc-val green"><strong>${brl(pixPrice)}</strong></span>
+        <span class="calc-lbl">Economia no Pix</span>
+        <span class="calc-val green">- ${brl(economia)}</span>
       </div>` : ''}
       ${fSemJuros && fSemJurosParc > 0 ? `<div class="calc-row">
         <span class="calc-lbl">Parcelas sem juros</span>
         <span class="calc-val">${instLine}</span>
       </div>` : ''}
+      ${fBoleto ? `<div class="calc-row">
+        <span class="calc-lbl">Boleto (entrada + 9x)</span>
+        <span class="calc-val">${boletoVal}/parcela</span>
+      </div>` : ''}
       ${mkt > 0 ? `<div class="calc-row">
         <span class="calc-lbl">Economia cliente (vs CIA)</span>
-        <span class="calc-val green">${brl(mkt - (pixDesconto > 0 ? pixPrice : finalPix))}</span>
+        <span class="calc-val green">${brl(mkt - (pixPrice > 0 ? pixPrice : finalPix))}</span>
       </div>` : ''}
     `;
     return;
@@ -2487,6 +2512,10 @@ function updateCalc() {
       <span class="calc-lbl">Economia cliente</span>
       <span class="calc-val green">${brl(mkt - c.finalPix)}</span>
     </div>` : ''}
+    ${fBoleto ? `<div class="calc-row">
+      <span class="calc-lbl">Boleto (entrada + 9x)</span>
+      <span class="calc-val">${brl(c.finalPix / 10)}/parcela</span>
+    </div>` : ''}
     ${!profitOk ? `<div class="profit-warn">Atencao: lucro abaixo do minimo de ${brl(c.floor)} para ${fType === 'intl' ? 'internacional' : 'nacional'}.</div>` : ''}
   `;
 }
@@ -2496,9 +2525,10 @@ function saveForm() {
   const dest     = (document.getElementById('f-dest')?.value   || '').trim();
   const mkt      = getNum('f-mkt');
 
-  // Sem juros
+  // Sem juros + Boleto
   const semJuros     = document.getElementById('f-semjuros')?.checked || false;
   const semJurosParc = parseInt(document.getElementById('f-semjurosparc')?.value) || 2;
+  const boleto       = document.getElementById('f-boleto')?.checked || false;
 
   if (!origin || !dest) { showToast('Preencha origem e destino'); return; }
 
@@ -2534,7 +2564,7 @@ function saveForm() {
 
   const resetFormState = () => {
     fAirline = 'LATAM'; fType = 'intl'; mktManual = false;
-    fPayment = 'milhas'; fSemJuros = false; fSemJurosParc = 2;
+    fPayment = 'milhas'; fSemJuros = false; fSemJurosParc = 2; fBoleto = false;
   };
 
   if (editingId) {
@@ -2564,6 +2594,7 @@ function saveForm() {
         pixDesconto,
         semJuros,
         semJurosParc,
+        boleto,
       };
       saveAlerts(alerts);
       showToast('Alerta atualizado');
@@ -2603,6 +2634,7 @@ function saveForm() {
       pixDesconto,
       semJuros,
       semJurosParc,
+      boleto,
       ts:           Date.now(),
     };
     alerts.push(newAlert);
@@ -2622,6 +2654,7 @@ function cancelForm() {
   fPayment = 'milhas';
   fSemJuros = false;
   fSemJurosParc = 2;
+  fBoleto = false;
   if (currentDetail) {
     render();
   } else {
