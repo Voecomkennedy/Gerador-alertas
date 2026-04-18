@@ -1618,6 +1618,9 @@ function buildWhatsApp(alert) {
     return parts.length ? parts.join(' · ') : raw.trim();
   };
 
+  // Helper: retorna só o número sem o prefixo "R$" (inclusive espaço não-quebrável) para usar dentro do tachado
+  const num = (x) => brl(x).replace(/^R\$\s*/u, '');
+
   let txt = `✈️ *${alert.origin} → ${alert.dest}*${alert.direct ? ' ✈️ Voo Direto' : ''}`;
   txt += `\n\n*${aName}* | Preço final com taxas`;
   if (alert.paymentMode === 'avista' && alert.pixDesconto > 0) {
@@ -1628,23 +1631,23 @@ function buildWhatsApp(alert) {
       ? ` | ${alert.semJurosParc}x de ${brl(finalPix / alert.semJurosParc)} sem juros`
       : '';
     txt += `\n\n💳 *${brl(finalPix)} no cartão*${instPart}`;
-    txt += `\n💰 ~${brl(finalPix)}~ → *${brl(pixPrice)} no Pix*`;
+    txt += `\n💰 R$ ~${num(finalPix)}~ → *${brl(pixPrice)} no Pix*`;
     if (economia > 0) txt += ` — economia de *${brl(economia)}*`;
     if (alert.mkt > 0) {
-      txt += `\n\n~${brl(alert.mkt)}~ → *${brl(pixPrice)}*`;
+      txt += `\n\nR$ ~${num(alert.mkt)}~ → *${brl(pixPrice)}*`;
       txt += `\nEconomia de *${brl(alert.mkt - pixPrice)}* por pessoa`;
     }
   } else {
     txt += `\n\n💰 ${brl(finalPix)}${alert.paymentMode === 'avista' ? ' à vista' : ' via Pix'}`;
     txt += instLine;
     if (alert.mkt > 0) {
-      txt += `\n\n~${brl(alert.mkt)}~ → *${brl(finalPix)}*`;
+      txt += `\n\nR$ ~${num(alert.mkt)}~ → *${brl(finalPix)}*`;
       txt += `\nEconomia de *${brl(economy)}* por pessoa`;
     }
   }
   if (alert.boleto) {
     const boletoVal = brl(finalPix / 10);
-    txt += `\n📄 Boleto: entrada + 9x de ${boletoVal} sem juros _(mediante aprovação)_`;
+    txt += `\n\n📄 *Boleto:* 1+9 de ${boletoVal} sem juros`;
   }
   txt += `\n\nIncluso: emissão + suporte até o embarque + assessoria jurídica`;
   const dOut = normDates(alert.dOut);
@@ -1657,7 +1660,7 @@ function buildWhatsApp(alert) {
     txt += `\n\n📅 *Datas de volta disponíveis:*`;
     txt += `\n${dIn}`;
   }
-  txt += `\n\n👉 *Para emitir:* só me encaminhar a referência no privado.`;
+  txt += `\n\n👉 *Para emitir*: só me encaminhar a referência no privado.`;
   txt += `\n\nSujeito à disponibilidade. | Ref: ${alert.ref}`;
   txt += `\n_VoeComKennedy_`;
   return txt;
