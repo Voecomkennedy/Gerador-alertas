@@ -2159,11 +2159,11 @@ function renderForm() {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">MILHAS</label>
-          <input class="form-input" id="f-miles" type="number" inputmode="decimal" placeholder="0" oninput="updateCalc()">
+          <input class="form-input" id="f-miles" type="text" inputmode="decimal" placeholder="0" oninput="updateCalc()">
         </div>
         <div class="form-group">
           <label class="form-label">TAXAS (R$)</label>
-          <input class="form-input" id="f-taxes" type="number" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
+          <input class="form-input" id="f-taxes" type="text" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
         </div>
       </div>
     </div>
@@ -2172,17 +2172,17 @@ function renderForm() {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">VENDA/MIL (R$)</label>
-          <input class="form-input" id="f-sellrate" type="number" inputmode="decimal" placeholder="ex: 30,00" step="0.01" oninput="updateCalc()">
+          <input class="form-input" id="f-sellrate" type="text" inputmode="decimal" placeholder="ex: 30,00" step="0.01" oninput="updateCalc()">
         </div>
         <div class="form-group">
           <label class="form-label">PRECO CIA (R$)</label>
-          <input class="form-input" id="f-mkt" type="number" inputmode="decimal" placeholder="auto (toque para fixar)" step="0.01" oninput="mktManual=true;updateCalc()">
+          <input class="form-input" id="f-mkt" type="text" inputmode="decimal" placeholder="auto (toque para fixar)" step="0.01" oninput="mktManual=true;updateCalc()">
         </div>
       </div>
       <div class="form-row" style="margin-top:8px">
         <div class="form-group">
           <label class="form-label" style="color:var(--gray-2)">PIX OVERRIDE (opcional)</label>
-          <input class="form-input" id="f-pix" type="number" inputmode="decimal" placeholder="so se quiser fixar" step="0.01" oninput="updateCalc()" style="opacity:0.7">
+          <input class="form-input" id="f-pix" type="text" inputmode="decimal" placeholder="so se quiser fixar" step="0.01" oninput="updateCalc()" style="opacity:0.7">
         </div>
       </div>
     </div>
@@ -2191,21 +2191,21 @@ function renderForm() {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">VALOR À VISTA (R$)</label>
-          <input class="form-input" id="f-avista" type="number" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
+          <input class="form-input" id="f-avista" type="text" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
         </div>
         <div class="form-group">
           <label class="form-label">MEU LUCRO (R$)</label>
-          <input class="form-input" id="f-avista-lucro" type="number" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
+          <input class="form-input" id="f-avista-lucro" type="text" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
         </div>
       </div>
       <div class="form-row" style="margin-top:8px">
         <div class="form-group">
           <label class="form-label">PRECO CIA (R$)</label>
-          <input class="form-input" id="f-mkt" type="number" inputmode="decimal" placeholder="para comparação" step="0.01" oninput="mktManual=true;updateCalc()">
+          <input class="form-input" id="f-mkt" type="text" inputmode="decimal" placeholder="para comparação" step="0.01" oninput="mktManual=true;updateCalc()">
         </div>
         <div class="form-group">
           <label class="form-label" style="color:var(--gray-2)">VALOR NO PIX (R$) — opcional</label>
-          <input class="form-input" id="f-pix-desconto" type="number" inputmode="decimal" placeholder="ex: 2800,00" step="0.01" oninput="updateCalc()" style="opacity:0.7">
+          <input class="form-input" id="f-pix-desconto" type="text" inputmode="decimal" placeholder="ex: 2800,00" step="0.01" oninput="updateCalc()" style="opacity:0.7">
         </div>
       </div>
     </div>
@@ -2361,7 +2361,7 @@ function renderCustomAirlineFields() {
       </div>` : ''}
       <div class="form-group">
         <label class="form-label">CUSTO/MILHEIRO (R$)</label>
-        <input class="form-input" id="f-rate" type="number" inputmode="decimal" placeholder="Ex: 19.90" step="0.01" oninput="updateCalc()">
+        <input class="form-input" id="f-rate" type="text" inputmode="decimal" placeholder="Ex: 19.90" step="0.01" oninput="updateCalc()">
       </div>
     </div>
   `;
@@ -2389,7 +2389,25 @@ function sanitizeLinkInput() {
 function getNum(id) {
   const el = document.getElementById(id);
   if (!el) return 0;
-  const v = parseFloat(el.value);
+  const raw = el.value.trim();
+  let norm;
+  if (raw.includes(',')) {
+    // Formato BR: "2.000,50" ou "2000,50" — ponto = milhar, vírgula = decimal
+    norm = raw.replace(/\./g, '').replace(',', '.');
+  } else {
+    const dots = (raw.match(/\./g) || []).length;
+    if (dots > 1) {
+      // Múltiplos pontos = separador de milhar: "1.000.000"
+      norm = raw.replace(/\./g, '');
+    } else if (dots === 1 && raw.split('.')[1].length === 3) {
+      // Um ponto com 3 dígitos depois = milhar: "93.000" → 93000
+      norm = raw.replace(/\./g, '');
+    } else {
+      // Ponto decimal normal: "2665.79"
+      norm = raw;
+    }
+  }
+  const v = parseFloat(norm);
   return isNaN(v) ? 0 : v;
 }
 
