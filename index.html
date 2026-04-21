@@ -1637,7 +1637,7 @@ function buildWhatsApp(alert) {
   // Helper: retorna só o número sem o prefixo "R$" (inclusive espaço não-quebrável) para usar dentro do tachado
   const num = (x) => brl(x).replace(/^R\$\s*/u, '');
 
-  let txt = `✈️ *${alert.origin} → ${alert.dest}*${alert.direct ? ' ✈️ Voo Direto' : ''}`;
+  let txt = `*${alert.origin} → ${alert.dest}${alert.direct ? ' | Voo Direto' : ''}*`;
   txt += `\n\n*${aName}* | Preço final com taxas`;
   if (alert.paymentMode === 'avista' && alert.pixDesconto > 0) {
     // Modo Valor Direto COM valor no Pix — cartão fica com preço cheio
@@ -1665,7 +1665,6 @@ function buildWhatsApp(alert) {
     const boletoVal = brl(finalPix / 10);
     txt += `\n\n📄 *Boleto:* 1+9 de ${boletoVal} sem juros`;
   }
-  txt += `\n\nIncluso: emissão + suporte até o embarque + assessoria jurídica`;
   const dOut = normDates(alert.dOut);
   if (dOut) {
     txt += `\n\n📅 *Datas de ida disponíveis:*`;
