@@ -3195,7 +3195,7 @@ function renderPackageForm() {
     <div class="section-card">
       <div class="section-title">FORNECEDOR</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-        ${['LATAM','GOL','AZUL','TAP','SMILES','OUTRO'].map(f =>
+        ${['AZUL','HotelDO','Cativa','Frt Operadora','Patria','OUTRO'].map(f =>
           `<button class="airline-btn pkg-forn-btn${pkgFornecedor===f?' selected':''}" data-forn="${f}" onclick="selectPkgFornecedor('${f}')">${f}</button>`
         ).join('')}
       </div>
