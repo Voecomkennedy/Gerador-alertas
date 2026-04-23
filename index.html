@@ -2752,13 +2752,18 @@ function cancelForm() {
 // BACKUP PAGE
 // ─────────────────────────────────────────────
 function renderBackup() {
-  const alerts = loadAlerts();
+  const alerts   = loadAlerts();
+  const packages = loadPackages();
+  const subDesc  = [
+    `${alerts.length} alerta${alerts.length !== 1 ? 's' : ''}`,
+    `${packages.length} pacote${packages.length !== 1 ? 's' : ''}`,
+  ].join(' · ');
   return `
     <div class="page-title">Backup</div>
 
     <div class="backup-card">
       <div class="backup-card-title">Exportar dados</div>
-      <div class="backup-card-sub">${alerts.length} alerta${alerts.length !== 1 ? 's' : ''} salvos</div>
+      <div class="backup-card-sub">${subDesc}</div>
       <button class="btn btn-gold" onclick="exportData()">Exportar JSON</button>
     </div>
 
@@ -2770,7 +2775,7 @@ function renderBackup() {
 
     <div class="backup-card">
       <div class="backup-card-title">Limpar dados</div>
-      <div class="backup-card-sub">Remove todos os alertas permanentemente</div>
+      <div class="backup-card-sub">Remove todos os alertas e pacotes permanentemente</div>
       <button class="btn btn-red" onclick="confirmClearAll()">Limpar tudo</button>
     </div>
   `;
@@ -2783,11 +2788,13 @@ function initBackup() {
 }
 
 function exportData() {
-  const alerts = loadAlerts();
+  const alerts   = loadAlerts();
+  const packages = loadPackages();
   const data = {
     version: 3,
     at: new Date().toISOString(),
     alerts,
+    packages,
   };
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -2824,14 +2831,20 @@ function handleFileImport(e) {
   reader.onload = (ev) => {
     try {
       const data = JSON.parse(ev.target.result);
-      const incoming = extractAlerts(data);
-      if (!incoming.length) { showToast('Nenhum alerta encontrado'); return; }
+      const incomingAlerts = extractAlerts(data);
+      const incomingPkgs   = Array.isArray(data.packages) ? data.packages : [];
+      const total = incomingAlerts.length + incomingPkgs.length;
+      if (!total) { showToast('Nenhum dado encontrado'); return; }
+      const desc = [
+        incomingAlerts.length ? `${incomingAlerts.length} alerta${incomingAlerts.length !== 1 ? 's' : ''}` : null,
+        incomingPkgs.length   ? `${incomingPkgs.length} pacote${incomingPkgs.length !== 1 ? 's' : ''}` : null,
+      ].filter(Boolean).join(' e ');
       showDialog(
         'Importar dados',
-        `${incoming.length} alerta${incoming.length !== 1 ? 's' : ''} encontrado${incoming.length !== 1 ? 's' : ''}. Como deseja importar?`,
+        `${desc} encontrado${total !== 1 ? 's' : ''}. Como deseja importar?`,
         [
-          { label: 'Substituir tudo', cls: 'btn-red',   action: () => importReplace(incoming) },
-          { label: 'Mesclar',         cls: 'btn-gold',  action: () => importMerge(incoming)   },
+          { label: 'Substituir tudo', cls: 'btn-red',   action: () => importReplace(incomingAlerts, incomingPkgs) },
+          { label: 'Mesclar',         cls: 'btn-gold',  action: () => importMerge(incomingAlerts, incomingPkgs)   },
           { label: 'Cancelar',        cls: 'btn-ghost'  },
         ]
       );
@@ -2869,18 +2882,33 @@ function migrateAlert(a) {
   return { id: genId(), ts: Date.now(), ...a };
 }
 
-function importReplace(alerts) {
+function importReplace(alerts, packages) {
   saveAlerts(alerts);
-  showToast(`${alerts.length} alertas importados`);
+  savePackages(packages);
+  const parts = [
+    alerts.length   ? `${alerts.length} alerta${alerts.length !== 1 ? 's' : ''}`     : null,
+    packages.length ? `${packages.length} pacote${packages.length !== 1 ? 's' : ''}` : null,
+  ].filter(Boolean).join(' e ');
+  showToast(`Importado: ${parts}`);
   render();
 }
 
-function importMerge(incoming) {
-  const existing = loadAlerts();
-  const existIds = new Set(existing.map(a => a.id));
-  const toAdd = incoming.filter(a => !existIds.has(a.id));
-  saveAlerts([...existing, ...toAdd]);
-  showToast(`${toAdd.length} alertas mesclados`);
+function importMerge(incomingAlerts, incomingPkgs) {
+  const existAlerts = loadAlerts();
+  const existIds = new Set(existAlerts.map(a => a.id));
+  const toAddAlerts = incomingAlerts.filter(a => !existIds.has(a.id));
+  saveAlerts([...existAlerts, ...toAddAlerts]);
+
+  const existPkgs = loadPackages();
+  const existPkgIds = new Set(existPkgs.map(p => p.id));
+  const toAddPkgs = incomingPkgs.filter(p => !existPkgIds.has(p.id));
+  savePackages([...existPkgs, ...toAddPkgs]);
+
+  const parts = [
+    toAddAlerts.length ? `${toAddAlerts.length} alerta${toAddAlerts.length !== 1 ? 's' : ''}` : null,
+    toAddPkgs.length   ? `${toAddPkgs.length} pacote${toAddPkgs.length !== 1 ? 's' : ''}`     : null,
+  ].filter(Boolean).join(' e ');
+  showToast(parts ? `Mesclado: ${parts}` : 'Nada novo para mesclar');
   render();
 }
 
@@ -2898,6 +2926,7 @@ function confirmClearAll() {
 function clearAll() {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(COUNTER_KEY);
+  localStorage.removeItem(PKG_KEY);
   showToast('Dados apagados');
   render();
 }
@@ -2911,9 +2940,10 @@ let pkgSearchQuery  = '';
 let pkgSemJuros     = false;
 let pkgSemJurosParc = 12;
 let pkgBoleto       = false;
+let pkgFornecedor   = '';
 let pkgItems = {};
 function resetPkgState() {
-  pkgSemJuros = false; pkgSemJurosParc = 12; pkgBoleto = false;
+  pkgSemJuros = false; pkgSemJurosParc = 12; pkgBoleto = false; pkgFornecedor = '';
   pkgItems = {
     aereo:    { active: true,  label: 'Aéreo' },
     hotel:    { active: true,  label: 'hotel' },
@@ -3027,7 +3057,7 @@ function renderPkgListItems() {
   el.innerHTML = sorted.map(p => `
     <div class="alert-card" onclick="openPkgDetail('${p.id}')">
       <div class="alert-card-body">
-        <div class="alert-ref">REF: ${p.ref}${p.ts?`<span class="alert-ts">${formatTs(p.ts)}</span>`:''}</div>
+        <div class="alert-ref">REF: ${p.ref}${p.fornecedor?` · ${p.fornecedor}`:''}${p.ts?`<span class="alert-ts">${formatTs(p.ts)}</span>`:''}</div>
         <div class="alert-route">${p.destino||'?'} ${p.origin?`← ${p.origin}`:''}</div>
         <div class="alert-airline">${p.noites||0} noites · ${p.numPessoas||1} pessoa${(p.numPessoas||1)>1?'s':''}</div>
       </div>
@@ -3163,6 +3193,15 @@ function renderPackageForm() {
     </div>
 
     <div class="section-card">
+      <div class="section-title">FORNECEDOR</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        ${['LATAM','GOL','AZUL','TAP','SMILES','OUTRO'].map(f =>
+          `<button class="airline-btn pkg-forn-btn${pkgFornecedor===f?' selected':''}" data-forn="${f}" onclick="selectPkgFornecedor('${f}')">${f}</button>`
+        ).join('')}
+      </div>
+    </div>
+
+    <div class="section-card">
       <div class="form-label">LINK DO FORNECEDOR (OPCIONAL)</div>
       <input class="form-input" id="pkg-link" type="url" inputmode="url" placeholder="https://">
     </div>
@@ -3180,6 +3219,12 @@ function updatePkgNoites() {
   const n    = calcNoites(dOut, dIn);
   const el   = document.getElementById('pkg-noites-display');
   if (el) el.textContent = n > 0 ? `${n} noite${n>1?'s':''}` : '';
+}
+function selectPkgFornecedor(val) {
+  pkgFornecedor = (pkgFornecedor === val) ? '' : val;
+  document.querySelectorAll('.pkg-forn-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.forn === pkgFornecedor);
+  });
 }
 function togglePkgItem(key) {
   pkgItems[key].active = !pkgItems[key].active;
@@ -3216,6 +3261,11 @@ function initPkgForm() {
       if (blEl)  { blEl.checked = p.boleto;   pkgBoleto = p.boleto; }
       const dirEl = document.getElementById('pkg-direct');
       if (dirEl) { dirEl.checked = !!p.direct; }
+      // Fornecedor
+      pkgFornecedor = p.fornecedor || '';
+      document.querySelectorAll('.pkg-forn-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.forn === pkgFornecedor);
+      });
       const ITEM_KEYS = ['aereo','hotel','transfer','seguro','ingresso','extra'];
       ITEM_KEYS.forEach(k => {
         pkgItems[k] = { active: !!p['i_'+k], label: p['l_'+k] || pkgItems[k].label };
@@ -3259,6 +3309,7 @@ function savePkg() {
       ? loadPackages().find(x=>x.id===pkgEditingId)?.ref || getNextRef()
       : getNextRef(),
     destino, origin, dest, direct, dOut, dIn, noites,
+    fornecedor: pkgFornecedor,
     valor, numPessoas, pixDesconto, semJuros, semJurosParc, boleto, link,
     ts: Date.now(),
   };
@@ -3341,7 +3392,7 @@ function renderPkgDetail(pkg) {
     <div class="detail-header">
       <div class="detail-header-top">
         <div>
-          <div class="detail-ref">REF: ${pkg.ref}</div>
+          <div class="detail-ref">REF: ${pkg.ref}${pkg.fornecedor ? ` · ${pkg.fornecedor}` : ''}</div>
           <div class="detail-route">${pkg.destino}${pkg.direct?' | Voo Direto':''}</div>
           <div class="detail-airline">${pkg.noites||0} noites · ${pkg.origin||'—'} → ${pkg.dest||'—'}</div>
           ${pkg.ts ? `<div class="detail-ts">Gerado em ${formatTs(pkg.ts)}</div>` : ''}
