@@ -512,6 +512,22 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
 
+  .section-card {
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray-1);
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+
   .fin-title {
     font-size: 11px;
     font-weight: 700;
@@ -940,6 +956,10 @@
       <span class="nav-icon">+</span>
       Novo
     </button>
+    <button class="nav-btn" id="nb-pacotes" onclick="setPage('pacotes')">
+      <span class="nav-icon">&#9644;</span>
+      Pacotes
+    </button>
     <button class="nav-btn" id="nb-backup" onclick="setPage('backup')">
       <span class="nav-icon">&#8645;</span>
       Backup
@@ -974,6 +994,10 @@ function loadAlerts() {
 function saveAlerts(arr) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
 }
+
+const PKG_KEY = 'vck_pkg';
+function loadPackages() { try { return JSON.parse(localStorage.getItem(PKG_KEY) || '[]'); } catch { return []; } }
+function savePackages(arr) { localStorage.setItem(PKG_KEY, JSON.stringify(arr)); }
 
 function getNextRef() {
   const now  = new Date();
@@ -1793,8 +1817,18 @@ function setPage(p) {
   currentPage   = p;
   currentDetail = null;
   editingId     = null;
-  ['list','new','backup'].forEach(x => {
-    document.getElementById('nb-' + x).classList.toggle('active', x === p);
+  // Package pages: treat 'pacote-new' as 'pacotes' for nav highlight
+  if (p === 'pacote-new') {
+    pkgCurrentDetail = null;
+  } else if (p === 'pacotes') {
+    pkgCurrentDetail = null;
+    pkgEditingId = null;
+    resetPkgState();
+  }
+  const navKey = (p === 'pacote-new') ? 'pacotes' : p;
+  ['list','new','pacotes','backup'].forEach(x => {
+    const el = document.getElementById('nb-' + x);
+    if (el) el.classList.toggle('active', x === navKey);
   });
   render();
 }
@@ -1823,6 +1857,21 @@ function render() {
   } else if (currentPage === 'backup') {
     main.innerHTML = renderBackup();
     initBackup();
+  } else if (currentPage === 'pacotes') {
+    if (pkgCurrentDetail) {
+      main.innerHTML = renderPkgDetail(pkgCurrentDetail);
+    } else {
+      main.innerHTML = renderPackageList();
+      const inp = document.getElementById('pkg-search');
+      if (inp) {
+        inp.value = pkgSearchQuery;
+        inp.addEventListener('input', e => { pkgSearchQuery = e.target.value; renderPkgListItems(); });
+      }
+      renderPkgListItems();
+    }
+  } else if (currentPage === 'pacote-new') {
+    main.innerHTML = renderPackageForm();
+    initPkgForm();
   }
 }
 
@@ -2850,6 +2899,517 @@ function clearAll() {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(COUNTER_KEY);
   showToast('Dados apagados');
+  render();
+}
+
+// ─────────────────────────────────────────────
+// PACOTES — STATE
+// ─────────────────────────────────────────────
+let pkgEditingId    = null;
+let pkgCurrentDetail = null;
+let pkgSearchQuery  = '';
+let pkgSemJuros     = false;
+let pkgSemJurosParc = 12;
+let pkgBoleto       = false;
+let pkgItems = {};
+function resetPkgState() {
+  pkgSemJuros = false; pkgSemJurosParc = 12; pkgBoleto = false;
+  pkgItems = {
+    aereo:    { active: true,  label: 'Aéreo' },
+    hotel:    { active: true,  label: 'hotel' },
+    transfer: { active: false, label: 'transfer' },
+    seguro:   { active: false, label: 'seguro viagem' },
+    ingresso: { active: false, label: 'ingresso' },
+    extra:    { active: false, label: '' },
+  };
+}
+resetPkgState();
+
+// ─────────────────────────────────────────────
+// PACOTES — HELPERS
+// ─────────────────────────────────────────────
+// Converte YYYY-MM-DD → DD/MM/YYYY e vice-versa
+function isoToBr(iso) { if (!iso||!iso.includes('-')) return iso||''; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+function brToIso(br)  { if (!br||!br.includes('/')) return br||'';   const [d,m,y]=br.split('/');  return `${y}-${m}-${d}`; }
+
+function calcNoites(dOut, dIn) {
+  if (!dOut || !dIn) return 0;
+  const parse = s => s.includes('-') ? new Date(s) : (() => { const [d,m,y]=s.split('/').map(Number); return new Date(y,m-1,d); })();
+  const diff = Math.round((parse(dIn) - parse(dOut)) / 86400000);
+  return diff > 0 ? diff : 0;
+}
+function pkgGetNum(id) {
+  const el = document.getElementById(id); if (!el) return 0;
+  const raw = el.value.trim();
+  let norm;
+  if (raw.includes(',')) { norm = raw.replace(/\./g,'').replace(',','.'); }
+  else { const dots=(raw.match(/\./g)||[]).length; norm = (dots>1||(dots===1&&raw.split('.')[1].length===3)) ? raw.replace(/\./g,'') : raw; }
+  const v = parseFloat(norm); return isNaN(v) ? 0 : v;
+}
+
+// ─────────────────────────────────────────────
+// PACOTES — WHATSAPP COPY
+// ─────────────────────────────────────────────
+function buildPackageWhatsApp(pkg) {
+  const noites = pkg.noites || 0;
+  const saindoDe = pkg.origin ? ` saindo de ${pkg.origin}` : '';
+  const vooDir   = pkg.direct ? ' | Voo Direto' : '';
+  let txt = `*${pkg.destino} — ${noites} noite${noites !== 1 ? 's' : ''}${saindoDe}${vooDir}*`;
+
+  // Linha de itens
+  const ITEM_KEYS = ['aereo','hotel','transfer','seguro','ingresso','extra'];
+  const labels = ITEM_KEYS
+    .filter(k => pkg['i_' + k] && pkg['l_' + k])
+    .map(k => pkg['l_' + k]);
+  if (labels.length > 0) txt += `\n\n${labels.join(' + ')}. Tudo incluso.`;
+
+  // Preço base por pessoa
+  txt += `\n\n*${brl(pkg.valor)} por pessoa*`;
+
+  // Linhas de pagamento
+  const payLines = [];
+  const pixVal = (pkg.pixDesconto > 0) ? pkg.pixDesconto : pkg.valor;
+  payLines.push(`*Pix:* ${brl(pixVal)} à vista`);
+
+  const nParc = pkg.semJurosParc || 12;
+  if (pkg.semJuros) {
+    payLines.push(`*Cartão:* ${nParc}x de ${brl(pkg.valor / nParc)} sem juros`);
+  } else {
+    const fee = INST_FEES[nParc] || INST_FEES[10] || 0;
+    const total = pkg.valor * (1 + fee / 100);
+    payLines.push(`*Cartão:* ${nParc}x de ${brl(total / nParc)}`);
+  }
+  if (pkg.boleto) {
+    payLines.push(`*Boleto:* 1+9 de ${brl(pkg.valor / 10)}`);
+  }
+  txt += '\n\n' + payLines.join('\n');
+
+  txt += `\n\nVagas limitadas. Me chama no privado com a *REF: ${pkg.ref}*.`;
+  txt += `\n\n_VoeComKennedy_`;
+  return txt;
+}
+
+// ─────────────────────────────────────────────
+// PACOTES — LIST PAGE
+// ─────────────────────────────────────────────
+function renderPackageList() {
+  return `
+    <div class="page-title">VCK Pacotes</div>
+    <div id="search-wrap">
+      <input class="search-input" id="pkg-search" type="search" placeholder="Buscar por REF, destino..." autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <button class="btn btn-gold" style="margin-bottom:16px;width:100%;font-size:15px" onclick="goNewPkg()">+ Novo Pacote</button>
+    <div id="pkg-list"></div>
+  `;
+}
+function goNewPkg() {
+  pkgEditingId = null; resetPkgState();
+  currentPage = 'pacote-new';
+  ['list','new','pacotes','backup'].forEach(x => {
+    const el = document.getElementById('nb-'+x); if(el) el.classList.toggle('active', x==='pacotes');
+  });
+  render();
+}
+function renderPkgListItems() {
+  const pkgs = loadPackages();
+  const q = pkgSearchQuery.toLowerCase().trim();
+  const filtered = q ? pkgs.filter(p =>
+    (p.ref||'').toLowerCase().includes(q) ||
+    (p.destino||'').toLowerCase().includes(q) ||
+    (p.origem||'').toLowerCase().includes(q)
+  ) : pkgs;
+  const el = document.getElementById('pkg-list'); if (!el) return;
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🧳</div><div class="empty-title">${pkgs.length===0?'Nenhum pacote':'Sem resultados'}</div><div class="empty-sub">${pkgs.length===0?'Crie seu primeiro pacote acima':'Tente outro termo de busca'}</div></div>`;
+    return;
+  }
+  const sorted = [...filtered].sort((a,b) => (b.ts||0)-(a.ts||0));
+  el.innerHTML = sorted.map(p => `
+    <div class="alert-card" onclick="openPkgDetail('${p.id}')">
+      <div class="alert-card-body">
+        <div class="alert-ref">REF: ${p.ref}${p.ts?`<span class="alert-ts">${formatTs(p.ts)}</span>`:''}</div>
+        <div class="alert-route">${p.destino||'?'} ${p.origin?`← ${p.origin}`:''}</div>
+        <div class="alert-airline">${p.noites||0} noites · ${p.numPessoas||1} pessoa${(p.numPessoas||1)>1?'s':''}</div>
+      </div>
+      <div class="alert-card-right">
+        <div class="alert-pix">${brlFloor(p.valor||0)}</div>
+        <span class="badge badge-intl">PKG</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────
+// PACOTES — FORM
+// ─────────────────────────────────────────────
+function renderPackageForm() {
+  const ITEM_DEFS = [
+    { key:'aereo',    name:'AÉREO' },
+    { key:'hotel',    name:'HOSPEDAGEM' },
+    { key:'transfer', name:'TRANSFER' },
+    { key:'seguro',   name:'SEGURO VIAGEM' },
+    { key:'ingresso', name:'INGRESSO' },
+    { key:'extra',    name:'EXTRA' },
+  ];
+  const itemsHtml = ITEM_DEFS.map(it => {
+    const item = pkgItems[it.key];
+    return `
+      <div style="border-bottom:1px solid var(--border);padding:12px 0">
+        <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="togglePkgItem('${it.key}')">
+          <div class="toggle-wrap" style="pointer-events:none">
+            <input type="checkbox" id="pkg-chk-${it.key}" ${item.active?'checked':''}>
+            <label class="toggle-label"></label>
+          </div>
+          <span class="form-label" style="margin:0;color:${item.active?'var(--gold)':'var(--gray-2)'}" id="pkg-lbl-${it.key}">${it.name}</span>
+        </div>
+        <div id="pkg-body-${it.key}" style="display:${item.active?'':'none'};margin-top:8px">
+          <input class="form-input" id="pkg-label-${it.key}" type="text"
+            placeholder="${it.name.toLowerCase()}"
+            value="${escHtml(item.label)}"
+            oninput="pkgItems['${it.key}'].label=this.value">
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <button id="back-btn" onclick="backFromPkgNew()">&#8592; Voltar</button>
+    <div class="page-title">${pkgEditingId?'Editar Pacote':'Novo Pacote'}</div>
+
+    <div class="section-card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">ORIGEM</label>
+          <input class="form-input" id="pkg-origin" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
+        </div>
+        <div class="form-group">
+          <label class="form-label">DESTINO (AEROPORTO)</label>
+          <input class="form-input" id="pkg-dest" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
+        </div>
+      </div>
+      <div class="form-label" style="margin-top:12px">NOME DO PACOTE / DESTINO</div>
+      <input class="form-input" id="pkg-destino" type="text" placeholder="Ex: Búzios (e Arredores), Cancún, Orlando..." style="margin-bottom:12px">
+      <div class="form-row" style="align-items:center">
+        <div class="form-group" style="flex:1;padding-top:22px">
+          <div class="switch-wrap">
+            <label class="switch">
+              <input type="checkbox" id="pkg-direct">
+              <span class="slider"></span>
+            </label>
+            <span class="switch-label">Voo Direto</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div class="form-label">DATA DE IDA</div>
+          <input class="form-input" id="pkg-dout" type="date" onchange="updatePkgNoites()">
+        </div>
+        <div>
+          <div class="form-label">DATA DE VOLTA</div>
+          <input class="form-input" id="pkg-din" type="date" onchange="updatePkgNoites()">
+        </div>
+      </div>
+      <div id="pkg-noites-display" style="text-align:center;font-size:13px;color:var(--gold);font-weight:700;min-height:22px;margin-top:10px"></div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">ITENS INCLUSOS</div>
+      ${itemsHtml}
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">PRECIFICAÇÃO</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <div class="form-label">VALOR POR PESSOA (R$)</div>
+          <input class="form-input" id="pkg-valor" type="text" inputmode="decimal" placeholder="0,00">
+        </div>
+        <div>
+          <div class="form-label">Nº PESSOAS</div>
+          <input class="form-input" id="pkg-npessoas" type="text" inputmode="numeric" placeholder="2" value="2">
+        </div>
+      </div>
+      <div class="form-label" style="color:var(--gray-2)">VALOR NO PIX (OPCIONAL — se menor que o cartão)</div>
+      <input class="form-input" id="pkg-pix" type="text" inputmode="decimal" placeholder="deixe vazio se for o mesmo" style="opacity:0.7">
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">PAGAMENTO</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="toggle-wrap">
+            <input type="checkbox" id="pkg-semjuros" ${pkgSemJuros?'checked':''}
+              onchange="pkgSemJuros=this.checked;document.getElementById('pkg-parc-lbl').textContent=this.checked?'Nº PARCELAS SEM JUROS':'Nº PARCELAS NO CARTÃO'">
+            <label class="toggle-label" for="pkg-semjuros"></label>
+          </div>
+          <span>Sem Juros</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="toggle-wrap">
+            <input type="checkbox" id="pkg-boleto" ${pkgBoleto?'checked':''}
+              onchange="pkgBoleto=this.checked">
+            <label class="toggle-label" for="pkg-boleto"></label>
+          </div>
+          <span>Boleto</span>
+        </div>
+      </div>
+      <div class="form-label" id="pkg-parc-lbl">${pkgSemJuros?'Nº PARCELAS SEM JUROS':'Nº PARCELAS NO CARTÃO'}</div>
+      <input class="form-input" id="pkg-semjurosparc" type="text" inputmode="numeric"
+        placeholder="12" value="${pkgSemJurosParc}"
+        oninput="pkgSemJurosParc=parseInt(this.value)||12">
+    </div>
+
+    <div class="section-card">
+      <div class="form-label">LINK DO FORNECEDOR (OPCIONAL)</div>
+      <input class="form-input" id="pkg-link" type="url" inputmode="url" placeholder="https://">
+    </div>
+
+    <button class="btn btn-gold" onclick="savePkg()" style="width:100%;margin-top:8px;font-size:16px">
+      ${pkgEditingId?'ATUALIZAR PACOTE':'SALVAR PACOTE'}
+    </button>
+    ${pkgEditingId ? `<button class="btn btn-red" onclick="confirmDeletePkg('${pkgEditingId}')" style="width:100%;margin-top:8px">Excluir pacote</button>` : ''}
+  `;
+}
+function updatePkgNoites() {
+  // type="date" returns YYYY-MM-DD
+  const dOut = document.getElementById('pkg-dout')?.value || '';
+  const dIn  = document.getElementById('pkg-din')?.value  || '';
+  const n    = calcNoites(dOut, dIn);
+  const el   = document.getElementById('pkg-noites-display');
+  if (el) el.textContent = n > 0 ? `${n} noite${n>1?'s':''}` : '';
+}
+function togglePkgItem(key) {
+  pkgItems[key].active = !pkgItems[key].active;
+  const chk  = document.getElementById('pkg-chk-'   + key);
+  const body = document.getElementById('pkg-body-'  + key);
+  const lbl  = document.getElementById('pkg-lbl-'   + key);
+  if (chk)  chk.checked = pkgItems[key].active;
+  if (body) body.style.display = pkgItems[key].active ? '' : 'none';
+  if (lbl)  lbl.style.color = pkgItems[key].active ? 'var(--gold)' : 'var(--gray-2)';
+}
+function initPkgForm() {
+  // Sempre configurar autocomplete
+  setupAirportAutocomplete('pkg-origin');
+  setupAirportAutocomplete('pkg-dest');
+
+  if (pkgEditingId) {
+    const pkgs = loadPackages();
+    const p = pkgs.find(x => x.id === pkgEditingId);
+    if (p) {
+      setVal('pkg-origin',     p.origin || '');
+      setVal('pkg-dest',       p.dest   || '');
+      setVal('pkg-destino',    p.destino);
+      // Datas: armazenadas em DD/MM/YYYY → converter para YYYY-MM-DD no campo type="date"
+      setVal('pkg-dout', brToIso(p.dOut));
+      setVal('pkg-din',  brToIso(p.dIn));
+      setVal('pkg-valor',      p.valor);
+      setVal('pkg-npessoas',   p.numPessoas);
+      setVal('pkg-pix',        p.pixDesconto||'');
+      setVal('pkg-semjurosparc', p.semJurosParc);
+      setVal('pkg-link',       p.link);
+      const sjEl  = document.getElementById('pkg-semjuros');
+      if (sjEl)  { sjEl.checked = p.semJuros; pkgSemJuros = p.semJuros; }
+      const blEl  = document.getElementById('pkg-boleto');
+      if (blEl)  { blEl.checked = p.boleto;   pkgBoleto = p.boleto; }
+      const dirEl = document.getElementById('pkg-direct');
+      if (dirEl) { dirEl.checked = !!p.direct; }
+      const ITEM_KEYS = ['aereo','hotel','transfer','seguro','ingresso','extra'];
+      ITEM_KEYS.forEach(k => {
+        pkgItems[k] = { active: !!p['i_'+k], label: p['l_'+k] || pkgItems[k].label };
+        const chk  = document.getElementById('pkg-chk-'+k);
+        const body = document.getElementById('pkg-body-'+k);
+        const lbl  = document.getElementById('pkg-lbl-'+k);
+        const inp  = document.getElementById('pkg-label-'+k);
+        if (chk)  chk.checked = pkgItems[k].active;
+        if (body) body.style.display = pkgItems[k].active ? '' : 'none';
+        if (lbl)  lbl.style.color = pkgItems[k].active ? 'var(--gold)' : 'var(--gray-2)';
+        if (inp)  inp.value = pkgItems[k].label;
+      });
+      updatePkgNoites();
+    }
+  }
+}
+function savePkg() {
+  const destino = (document.getElementById('pkg-destino')?.value||'').trim();
+  if (!destino) { showToast('Informe o nome do destino'); return; }
+  const origin  = (document.getElementById('pkg-origin')?.value||'').trim();
+  const dest    = (document.getElementById('pkg-dest')?.value||'').trim();
+  const direct  = document.getElementById('pkg-direct')?.checked || false;
+  // Datas: type="date" retorna YYYY-MM-DD → armazenar em DD/MM/YYYY
+  const dOutIso = document.getElementById('pkg-dout')?.value || '';
+  const dInIso  = document.getElementById('pkg-din')?.value  || '';
+  const dOut    = isoToBr(dOutIso);
+  const dIn     = isoToBr(dInIso);
+  const noites  = calcNoites(dOutIso, dInIso);
+  const valor      = pkgGetNum('pkg-valor');
+  const numPessoas = parseInt(document.getElementById('pkg-npessoas')?.value)||1;
+  const pixDesconto= pkgGetNum('pkg-pix');
+  const semJuros   = document.getElementById('pkg-semjuros')?.checked || false;
+  const semJurosParc = parseInt(document.getElementById('pkg-semjurosparc')?.value)||12;
+  const boleto     = document.getElementById('pkg-boleto')?.checked || false;
+  const link       = sanitizeLink(document.getElementById('pkg-link')?.value||'');
+  const ITEM_KEYS  = ['aereo','hotel','transfer','seguro','ingresso','extra'];
+
+  const pkg = {
+    id: pkgEditingId || ('p' + Date.now()),
+    ref: pkgEditingId
+      ? loadPackages().find(x=>x.id===pkgEditingId)?.ref || getNextRef()
+      : getNextRef(),
+    destino, origin, dest, direct, dOut, dIn, noites,
+    valor, numPessoas, pixDesconto, semJuros, semJurosParc, boleto, link,
+    ts: Date.now(),
+  };
+  ITEM_KEYS.forEach(k => {
+    const inp = document.getElementById('pkg-label-'+k);
+    pkg['i_'+k] = pkgItems[k].active;
+    pkg['l_'+k] = inp ? inp.value.trim() : pkgItems[k].label;
+  });
+
+  let pkgs = loadPackages();
+  if (pkgEditingId) {
+    pkgs = pkgs.map(x => x.id === pkgEditingId ? pkg : x);
+    showToast('Pacote atualizado');
+  } else {
+    pkgs.unshift(pkg);
+    showToast('Pacote salvo!');
+  }
+  savePackages(pkgs);
+  pkgEditingId = null;
+  resetPkgState();
+  currentPage = 'pacotes';
+  pkgCurrentDetail = pkg;
+  ['list','new','pacotes','backup'].forEach(x => {
+    const el = document.getElementById('nb-'+x); if(el) el.classList.toggle('active', x==='pacotes');
+  });
+  render();
+}
+function backFromPkgNew() {
+  pkgEditingId = null; resetPkgState();
+  currentPage = 'pacotes'; pkgCurrentDetail = null;
+  ['list','new','pacotes','backup'].forEach(x => {
+    const el = document.getElementById('nb-'+x); if(el) el.classList.toggle('active', x==='pacotes');
+  });
+  render();
+}
+
+// ─────────────────────────────────────────────
+// PACOTES — DETAIL PAGE
+// ─────────────────────────────────────────────
+function openPkgDetail(id) {
+  const pkgs = loadPackages();
+  pkgCurrentDetail = pkgs.find(p => p.id === id) || null;
+  if (!pkgCurrentDetail) return;
+  currentPage = 'pacotes';
+  render();
+}
+function renderPkgDetail(pkg) {
+  const link    = sanitizeLink(pkg.link||'');
+  const linkBtn = link
+    ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="btn-link-full">ABRIR FORNECEDOR</a>`
+    : `<button class="btn btn-ghost" style="margin-bottom:12px;cursor:not-allowed;opacity:0.5">SEM LINK CADASTRADO</button>`;
+
+  const waCopy = buildPackageWhatsApp(pkg);
+  window._pkgCopy = { wa: waCopy };
+
+  // Items list
+  const ITEM_DEFS = [
+    {key:'aereo',icon:'✈️'},{key:'hotel',icon:'🏨'},{key:'transfer',icon:'🚌'},
+    {key:'seguro',icon:'🛡️'},{key:'ingresso',icon:'🎡'},{key:'extra',icon:'➕'},
+  ];
+  const activeItems = ITEM_DEFS.filter(it => pkg['i_'+it.key] && pkg['l_'+it.key]);
+  const itemsHtml = activeItems.map(it =>
+    `<div class="fin-row"><span>${it.icon}</span><span>${escHtml(pkg['l_'+it.key])}</span></div>`
+  ).join('');
+
+  // Payment summary
+  const nParc = pkg.semJurosParc || 12;
+  const pixVal = pkg.pixDesconto > 0 ? pkg.pixDesconto : pkg.valor;
+  let cartaoDesc;
+  if (pkg.semJuros) {
+    cartaoDesc = `${nParc}x de ${brl(pkg.valor/nParc)} sem juros`;
+  } else {
+    const fee = INST_FEES[nParc]||INST_FEES[10]||0;
+    cartaoDesc = `${nParc}x de ${brl(pkg.valor*(1+fee/100)/nParc)}`;
+  }
+
+  return `
+    <button id="back-btn" onclick="pkgCurrentDetail=null;render()">&#8592; Voltar</button>
+
+    <div class="detail-header">
+      <div class="detail-header-top">
+        <div>
+          <div class="detail-ref">REF: ${pkg.ref}</div>
+          <div class="detail-route">${pkg.destino}${pkg.direct?' | Voo Direto':''}</div>
+          <div class="detail-airline">${pkg.noites||0} noites · ${pkg.origin||'—'} → ${pkg.dest||'—'}</div>
+          ${pkg.ts ? `<div class="detail-ts">Gerado em ${formatTs(pkg.ts)}</div>` : ''}
+        </div>
+        <button class="detail-edit-btn" onclick="editPkg('${pkg.id}')">Editar</button>
+      </div>
+      <div class="detail-pix">${brl(pkg.valor)}<span style="font-size:13px;font-weight:400;color:var(--gray-1)"> /pessoa</span></div>
+      <div class="detail-inst">${cartaoDesc}</div>
+    </div>
+
+    <div class="financial-box">
+      <div class="fin-title">ITENS INCLUSOS</div>
+      ${itemsHtml || '<div style="color:var(--gray-2);font-size:13px">Nenhum item cadastrado</div>'}
+    </div>
+
+    <div class="financial-box">
+      <div class="fin-title">PAGAMENTO</div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Pix</span><span style="color:var(--gold);font-weight:700">${brl(pixVal)}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Cartão</span><span>${cartaoDesc}</span></div>
+      ${pkg.boleto ? `<div class="fin-row"><span style="color:var(--gray-1)">Boleto</span><span>1+9 de ${brl(pkg.valor/10)}</span></div>` : ''}
+      ${pkg.numPessoas > 1 ? `<div class="fin-row"><span style="color:var(--gray-1)">Total (${pkg.numPessoas} pessoas)</span><span style="font-weight:700">${brl(pkg.valor * pkg.numPessoas)}</span></div>` : ''}
+    </div>
+
+    ${(pkg.dOut||pkg.dIn) ? `
+    <div class="financial-box">
+      <div class="fin-title">PERÍODO</div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Ida</span><span>${pkg.dOut||'—'}</span></div>
+      <div class="fin-row"><span style="color:var(--gray-1)">Volta</span><span>${pkg.dIn||'—'}</span></div>
+    </div>` : ''}
+
+    ${linkBtn}
+
+    <div class="copy-block">
+      <div class="copy-block-top">
+        <div class="copy-block-title">WHATSAPP</div>
+        <button class="btn-sm btn-gold" onclick="copyText(window._pkgCopy.wa, this)">Copiar</button>
+      </div>
+      <div class="copy-text">${escHtml(waCopy)}</div>
+    </div>
+
+    <button class="btn btn-red" onclick="confirmDeletePkg('${pkg.id}')">Excluir pacote</button>
+  `;
+}
+function editPkg(id) {
+  pkgEditingId = id; resetPkgState();
+  currentPage = 'pacote-new';
+  pkgCurrentDetail = null;
+  ['list','new','pacotes','backup'].forEach(x => {
+    const el = document.getElementById('nb-'+x); if(el) el.classList.toggle('active', x==='pacotes');
+  });
+  render();
+}
+function confirmDeletePkg(id) {
+  showDialog(
+    'Excluir pacote',
+    'Isso vai remover o pacote permanentemente.',
+    [
+      { label: 'Excluir', cls: 'btn-red', action: () => deletePkg(id) },
+      { label: 'Cancelar', cls: 'btn-ghost' },
+    ]
+  );
+}
+function deletePkg(id) {
+  let pkgs = loadPackages().filter(p => p.id !== id);
+  savePackages(pkgs);
+  pkgCurrentDetail = null;
+  showToast('Pacote excluído');
+  currentPage = 'pacotes';
   render();
 }
 
