@@ -8,26 +8,34 @@
 <meta name="apple-mobile-web-app-title" content="VCK">
 <title>VCK Alertas</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap');
+
   :root {
-    --bg:        #EEF2F7;
-    --s1:        #FFFFFF;
-    --s2:        #FFFFFF;
-    --s3:        #F8FAFC;
-    --gold:      #C9A84B;
-    --gold-dim:  rgba(201,168,75,0.10);
-    --gold-line: rgba(201,168,75,0.40);
-    --white:     #1E2A3A;
-    --gray-1:    #64748B;
-    --gray-2:    #94A3B8;
-    --gray-3:    #CBD5E1;
-    --green:     #16A34A;
-    --red:       #DC2626;
-    --border:    #E2E8F0;
-    --border-hi: #C9A84B;
-    --navy:      #1E2A3A;
-    --nav-h: 64px;
-    --safe-b: env(safe-area-inset-bottom, 0px);
-    --safe-t: env(safe-area-inset-top, 0px);
+    --bg:        #0B1120;
+    --s1:        #131C2F;
+    --s2:        #1A2540;
+    --s3:        #0D1524;
+    --gold:      #D4A843;
+    --gold-light:#E8C96A;
+    --gold-dim:  rgba(212,168,67,0.10);
+    --gold-glow: rgba(212,168,67,0.18);
+    --gold-line: rgba(212,168,67,0.28);
+    --white:     #EEF2FA;
+    --gray-1:    #7D8FAD;
+    --gray-2:    #4A5A78;
+    --gray-3:    #253045;
+    --green:     #10D07A;
+    --red:       #EF5350;
+    --border:    rgba(255,255,255,0.06);
+    --border-hi: rgba(212,168,67,0.40);
+    --navy:      #080F1C;
+    --nav-h:     64px;
+    --safe-b:    env(safe-area-inset-bottom, 0px);
+    --safe-t:    env(safe-area-inset-top, 0px);
+    --radius:    14px;
+    --radius-sm: 10px;
+    --shadow:    0 4px 24px rgba(0,0,0,0.45);
+    --shadow-sm: 0 2px 10px rgba(0,0,0,0.30);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -36,14 +44,50 @@
     height: 100dvh;
     background: var(--bg);
     color: var(--white);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  #app {
+  #app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+
+  /* ── APP HEADER ── */
+  #app-header {
+    flex-shrink: 0;
     display: flex;
-    flex-direction: column;
-    height: 100dvh;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(var(--safe-t) + 12px) 20px 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    z-index: 50;
+  }
+  .hdr-brand { display: flex; align-items: baseline; gap: 8px; }
+  .hdr-logo {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .hdr-wordmark {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gray-2);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  #hdr-right { display: flex; align-items: center; gap: 10px; }
+  .hdr-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray-1);
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    letter-spacing: 0.5px;
   }
 
   /* ── SCROLL AREA ── */
@@ -51,25 +95,33 @@
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-top: calc(var(--safe-t) + 16px);
-    padding-bottom: calc(var(--nav-h) + var(--safe-b) + 16px);
+    padding-top: 20px;
+    padding-bottom: calc(90px + var(--safe-b));
     padding-left: 16px;
     padding-right: 16px;
   }
+  #main::-webkit-scrollbar { width: 2px; }
+  #main::-webkit-scrollbar-track { background: transparent; }
+  #main::-webkit-scrollbar-thumb { background: var(--gold-line); border-radius: 2px; }
 
-  /* ── NAV ── */
+  /* ── FLOATING PILL NAV ── */
   #nav {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: calc(var(--nav-h) + var(--safe-b));
-    background: var(--s1);
-    border-top: 1px solid var(--border);
+    bottom: calc(var(--safe-b) + 14px);
+    left: 14px;
+    right: 14px;
+    height: auto;
+    background: rgba(19,28,47,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 26px;
     display: flex;
-    align-items: flex-start;
-    padding-top: 4px;
+    align-items: center;
+    padding: 6px;
+    gap: 4px;
     z-index: 100;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,168,67,0.06);
   }
 
   .nav-btn {
@@ -77,267 +129,391 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
     padding: 8px 4px;
     background: none;
     border: none;
     color: var(--gray-2);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
     cursor: pointer;
-    min-height: 44px;
-    transition: color 0.15s;
+    border-radius: 20px;
+    transition: all 0.2s;
+    min-height: 52px;
+    font-family: inherit;
   }
+  .nav-btn.active {
+    background: var(--gold-dim);
+    color: var(--gold);
+    box-shadow: inset 0 0 0 1px var(--gold-line);
+  }
+  .nav-icon { font-size: 18px; line-height: 1; }
+  .nav-lbl  { font-size: 9px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; }
 
-  .nav-btn.active { color: var(--gold); }
-  .nav-btn .nav-icon { font-size: 20px; line-height: 1; }
-
-  /* ── HEADERS ── */
-  .page-title {
+  .nav-btn-new .nav-new-plus {
     font-size: 22px;
-    font-weight: 700;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--gold);
+  }
+  .nav-btn-new.active .nav-new-plus { color: var(--gold); }
+
+  /* ── PAGE TITLE ── */
+  .page-title {
+    font-size: 20px;
+    font-weight: 800;
     color: var(--white);
-    margin-bottom: 16px;
+    margin-bottom: 18px;
+    letter-spacing: -0.4px;
+    line-height: 1.1;
   }
+  .page-subtitle { font-size: 13px; color: var(--gray-1); margin-bottom: 16px; line-height: 1.5; }
 
-  .page-subtitle {
-    font-size: 13px;
-    color: var(--gray-1);
-    margin-bottom: 16px;
-  }
-
-  /* ── CARDS ── */
+  /* ── CARDS (generic) ── */
   .card {
     background: var(--s1);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
   }
 
-  /* ── STATS BAR ── */
-  #stats-bar {
+  /* ── KPI BAR ── */
+  .kpi-bar {
     display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-
-  .stat-box {
-    flex: 1;
+    align-items: stretch;
     background: var(--s1);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 8px;
-    text-align: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+    position: relative;
   }
-
-  .stat-num {
-    font-size: 22px;
-    font-weight: 700;
+  .kpi-bar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold) 0%, transparent 60%);
+  }
+  .kpi-main {
+    flex: 1;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .kpi-main-num {
+    font-size: 48px;
+    font-weight: 900;
     color: var(--gold);
+    letter-spacing: -3px;
     line-height: 1;
   }
-
-  .stat-lbl {
+  .kpi-main-lbl {
     font-size: 10px;
+    font-weight: 700;
     color: var(--gray-1);
-    margin-top: 2px;
-    letter-spacing: 0.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 4px;
   }
+  .kpi-pills {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 16px 16px 0;
+    border-left: 1px solid var(--border);
+    padding-left: 16px;
+  }
+  .kpi-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--s3);
+    border-radius: 10px;
+    padding: 8px 12px;
+    min-width: 100px;
+  }
+  .kpi-pill-num {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    line-height: 1;
+  }
+  .kpi-pill-lbl {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--gray-1);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .kpi-intl .kpi-pill-num { color: #60A5FA; }
+  .kpi-nac  .kpi-pill-num { color: #34D399; }
 
-  /* ── SEARCH ── */
-  #search-wrap { margin-bottom: 14px; }
-
-  .search-input {
-    width: 100%;
+  /* ── SEARCH PILL ── */
+  #search-wrap { margin-bottom: 16px; }
+  .search-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     background: var(--s1);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 16px;
-    color: var(--white);
-    outline: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    transition: border-color 0.15s, box-shadow 0.15s;
+    border-radius: 50px;
+    padding: 0 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
-
-  .search-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dim); }
+  .search-pill:focus-within { border-color: var(--border-hi); box-shadow: 0 0 0 3px var(--gold-dim); }
+  .search-pill-icon { font-size: 16px; color: var(--gray-2); flex-shrink: 0; }
+  .search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 13px 0;
+    font-size: 15px;
+    color: var(--white);
+    font-family: inherit;
+  }
   .search-input::placeholder { color: var(--gray-2); }
 
-  /* ── ALERT CARD ── */
-  .alert-card {
+  /* ── FLIGHT CARD (new alert card) ── */
+  .flight-card {
     background: var(--s1);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--gold);
-    border-radius: 12px;
-    padding: 14px;
+    border-radius: var(--radius);
+    padding: 16px 18px;
     margin-bottom: 10px;
     cursor: pointer;
-    transition: box-shadow 0.15s, border-color 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 44px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-
-  .alert-card:hover  { box-shadow: 0 4px 12px rgba(0,0,0,0.10); }
-  .alert-card:active { box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-
-  .alert-card-body { flex: 1; min-width: 0; }
-
-  .alert-ref {
-    font-size: 11px;
-    color: var(--gray-1);
-    font-weight: 600;
-    letter-spacing: 1px;
-    margin-bottom: 2px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .alert-ts {
-    font-size: 10px;
-    font-weight: 400;
-    letter-spacing: 0;
-    color: var(--gray-2);
-  }
-
-  .alert-route {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--white);
-    white-space: nowrap;
+    transition: all 0.18s;
+    position: relative;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
+  .flight-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--gold);
+    opacity: 0.7;
+    border-radius: 0 2px 2px 0;
+  }
+  .flight-card:hover  { background: var(--s2); border-color: var(--border-hi); transform: translateY(-1px); box-shadow: 0 8px 28px rgba(0,0,0,0.4); }
+  .flight-card:active { background: var(--s3); transform: scale(0.99); }
 
-  .alert-airline {
-    font-size: 12px;
+  .fc-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .fc-airline {
+    font-size: 10px;
+    font-weight: 800;
     color: var(--gray-1);
-    margin-top: 2px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
   }
+  .fc-meta { display: flex; align-items: center; gap: 8px; }
+  .fc-ref  { font-size: 10px; color: var(--gray-2); font-weight: 600; letter-spacing: 0.5px; }
 
-  .alert-card-right { text-align: right; flex-shrink: 0; }
-
-  .alert-pix {
+  .fc-route {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .fc-city {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.8px;
+    line-height: 1;
+  }
+  .fc-arrow {
     font-size: 16px;
-    font-weight: 700;
     color: var(--gold);
+    opacity: 0.6;
+    flex-shrink: 0;
   }
+  .fc-flag { font-size: 18px; }
+  .fc-direct {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    opacity: 0.85;
+  }
+  .fc-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .fc-price {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--gold);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .fc-price-label {
+    font-size: 10px;
+    color: var(--gray-2);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .fc-time { font-size: 11px; color: var(--gray-2); font-weight: 500; }
 
+  /* ── PACKAGE CARD ── */
+  .pkg-card {
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .pkg-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: #60A5FA;
+    opacity: 0.7;
+    border-radius: 0 2px 2px 0;
+  }
+  .pkg-card:hover { background: var(--s2); border-color: rgba(96,165,250,0.4); transform: translateY(-1px); box-shadow: 0 8px 28px rgba(0,0,0,0.4); }
+  .pkg-card:active { background: var(--s3); transform: scale(0.99); }
+  .pkg-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .pkg-card-forn { font-size: 10px; font-weight: 800; color: var(--gray-1); letter-spacing: 2px; text-transform: uppercase; }
+  .pkg-card-ref  { font-size: 10px; color: var(--gray-2); font-weight: 600; }
+  .pkg-card-dest { font-size: 22px; font-weight: 800; color: var(--white); letter-spacing: -0.6px; line-height: 1; margin-bottom: 4px; }
+  .pkg-card-sub  { font-size: 12px; color: var(--gray-1); }
+  .pkg-card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .pkg-card-price { font-size: 24px; font-weight: 800; color: var(--gold); letter-spacing: -0.8px; line-height: 1; }
+  .pkg-card-badge { background: rgba(96,165,250,0.14); color: #60A5FA; border: 1px solid rgba(96,165,250,0.22); border-radius: 4px; font-size: 9px; font-weight: 800; padding: 3px 8px; letter-spacing: 1px; }
+
+  /* ── BADGES ── */
   .badge {
     display: inline-block;
-    padding: 2px 6px;
+    padding: 2px 7px;
     border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    margin-top: 3px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
   }
+  .badge-intl { background: rgba(59,130,246,0.14); color: #60A5FA; border: 1px solid rgba(59,130,246,0.22); }
+  .badge-nac  { background: rgba(16,208,122,0.12); color: #34D399; border: 1px solid rgba(16,208,122,0.22); }
 
-  .badge-intl { background: #DBEAFE; color: #1D4ED8; }
-  .badge-nac  { background: #DCFCE7; color: #15803D; }
+  /* ── keep legacy alert-card/alert-pix for detail page ── */
+  .alert-ref  { font-size: 10px; color: var(--gray-1); font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .alert-ts   { font-size: 10px; font-weight: 400; letter-spacing: 0; color: var(--gray-2); text-transform: none; }
+  .alert-card-body { flex: 1; min-width: 0; }
+  .alert-card-right { text-align: right; flex-shrink: 0; }
+  .alert-pix  { font-size: 16px; font-weight: 800; color: var(--gold); letter-spacing: -0.4px; }
 
   /* ── EMPTY STATE ── */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--gray-2);
-  }
-
-  .empty-icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-title { font-size: 18px; font-weight: 600; color: var(--gray-1); margin-bottom: 6px; }
-  .empty-sub { font-size: 14px; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--gray-2); }
+  .empty-icon  { font-size: 48px; margin-bottom: 14px; opacity: 0.5; }
+  .empty-title { font-size: 17px; font-weight: 700; color: var(--gray-1); margin-bottom: 8px; }
+  .empty-sub   { font-size: 14px; line-height: 1.5; }
 
   /* ── FORM ── */
   .form-section { margin-bottom: 20px; }
-
   .form-label {
     display: block;
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 800;
     color: var(--gray-1);
-    letter-spacing: 1px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
     margin-bottom: 8px;
   }
-
   .form-input {
     width: 100%;
-    background: var(--s1);
+    background: var(--s3);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    padding: 13px 14px;
     font-size: 16px;
     color: var(--white);
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    font-family: inherit;
   }
-
-  .form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dim); }
+  .form-input:focus { border-color: var(--border-hi); box-shadow: 0 0 0 3px var(--gold-dim); background: var(--s1); }
   .form-input::placeholder { color: var(--gray-2); }
-
-  .form-row {
-    display: flex;
-    gap: 10px;
-  }
-
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5) sepia(1) hue-rotate(5deg); cursor: pointer; }
+  .form-row { display: flex; gap: 10px; }
   .form-row .form-group { flex: 1; }
-
   .form-group { margin-bottom: 14px; }
 
-  /* ── AIRLINE GRID ── */
+  /* ── AIRLINE / SELECTOR GRID ── */
   #airline-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin-bottom: 14px;
   }
-
   .airline-btn {
-    background: var(--s1);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
+    background: var(--s3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     padding: 12px 6px;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 800;
     color: var(--gray-1);
     cursor: pointer;
     text-align: center;
     transition: all 0.15s;
     min-height: 44px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    letter-spacing: 0.5px;
+    font-family: inherit;
   }
-
-  .airline-btn:hover { border-color: var(--gray-3); }
-
+  .airline-btn:hover { border-color: var(--gold-line); color: var(--white); }
   .airline-btn.selected {
     border-color: var(--gold);
     color: var(--gold);
     background: var(--gold-dim);
-    box-shadow: 0 0 0 3px var(--gold-dim);
+    box-shadow: inset 0 0 0 1px var(--gold-line);
   }
 
-  /* ── TYPE TOGGLE ── */
+  /* ── TOGGLE PILL ── */
   .toggle-wrap {
     display: flex;
     background: var(--s3);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
     padding: 3px;
     gap: 3px;
   }
-
   .toggle-opt {
     flex: 1;
-    padding: 9px 8px;
-    font-size: 13px;
-    font-weight: 700;
+    padding: 10px 8px;
+    font-size: 12px;
+    font-weight: 800;
     text-align: center;
     cursor: pointer;
     color: var(--gray-1);
@@ -346,95 +522,93 @@
     border-radius: 8px;
     transition: all 0.15s;
     min-height: 40px;
+    letter-spacing: 0.3px;
+    font-family: inherit;
   }
-
-  .toggle-opt.active {
-    background: var(--s1);
-    color: var(--gold);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.10);
-  }
+  .toggle-opt.active { background: var(--s1); color: var(--gold); box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
 
   /* ── CALC PREVIEW ── */
   #calc-preview {
     background: var(--s1);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
+    border-radius: var(--radius);
+    padding: 16px;
     margin-bottom: 14px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
-
   #calc-preview .preview-title {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 800;
     color: var(--gray-1);
-    letter-spacing: 1px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
     margin-bottom: 12px;
   }
-
   .calc-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
+    padding: 8px 0;
     border-bottom: 1px solid var(--border);
     font-size: 13px;
   }
-
   .calc-row:last-child { border-bottom: none; }
-
-  .calc-lbl { color: var(--gray-1); }
+  .calc-lbl { color: var(--gray-1); font-size: 12px; }
   .calc-val { font-weight: 700; }
-
   .calc-val.gold  { color: var(--gold); }
   .calc-val.green { color: var(--green); }
   .calc-val.red   { color: var(--red); }
-
   .profit-warn {
-    background: #FEF2F2;
-    border: 1px solid #FECACA;
-    border-radius: 8px;
-    padding: 8px 12px;
+    background: rgba(239,83,80,0.07);
+    border: 1px solid rgba(239,83,80,0.22);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
     font-size: 12px;
     color: var(--red);
     margin-top: 10px;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   /* ── BUTTONS ── */
   .btn {
     width: 100%;
-    padding: 15px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 700;
+    padding: 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 800;
     border: none;
     cursor: pointer;
-    min-height: 50px;
-    transition: opacity 0.15s;
-    letter-spacing: 0.5px;
+    min-height: 52px;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-family: inherit;
   }
-
-  .btn:active { opacity: 0.8; }
-  .btn-gold  { background: var(--gold); color: #FFFFFF; letter-spacing: 0.6px; box-shadow: 0 2px 8px rgba(201,168,75,0.35); }
-  .btn-red   { background: #FEF2F2; border: 1px solid #FECACA; color: var(--red); }
+  .btn:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-gold {
+    background: linear-gradient(135deg, #D4A843 0%, #B8902E 100%);
+    color: #0B1120;
+    box-shadow: 0 4px 18px rgba(212,168,67,0.35);
+  }
+  .btn-gold:hover { box-shadow: 0 6px 26px rgba(212,168,67,0.50); }
+  .btn-red   { background: rgba(239,83,80,0.10); border: 1px solid rgba(239,83,80,0.28); color: var(--red); }
   .btn-ghost { background: var(--s1); border: 1px solid var(--border); color: var(--gray-1); }
 
   .btn-sm {
-    padding: 8px 14px;
+    padding: 9px 16px;
     border-radius: 8px;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 800;
     border: none;
     cursor: pointer;
     min-height: 36px;
     transition: all 0.15s;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    font-family: inherit;
   }
-
   .btn-sm.copied { background: var(--green) !important; color: #000 !important; }
 
-  /* ── DETAIL ── */
+  /* ── DETAIL PAGE ── */
   #back-btn {
     display: flex;
     align-items: center;
@@ -442,230 +616,228 @@
     background: none;
     border: none;
     color: var(--gold);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     padding: 0;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     min-height: 44px;
+    font-family: inherit;
+    letter-spacing: 0.3px;
   }
 
   .detail-header {
     background: var(--s1);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
+    border-top: 2px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 20px;
     margin-bottom: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
   }
-
+  .detail-header::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 130px; height: 130px;
+    background: radial-gradient(circle, var(--gold-glow) 0%, transparent 70%);
+    pointer-events: none;
+  }
   .detail-header-top {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
   }
-
   .detail-ref {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--gray-1);
-    font-weight: 700;
-    letter-spacing: 1px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
   }
-
   .detail-route {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
     color: var(--white);
-    margin: 4px 0;
+    margin: 6px 0;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
   }
-
   .detail-airline { font-size: 13px; color: var(--gray-1); margin-bottom: 4px; }
-  .detail-ts { font-size: 11px; color: var(--gray-2); margin-bottom: 8px; }
-
+  .detail-ts      { font-size: 11px; color: var(--gray-2); margin-bottom: 10px; }
   .detail-pix {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 800;
     color: var(--gold);
+    letter-spacing: -1px;
+    line-height: 1;
   }
-
-  .detail-inst { font-size: 13px; color: var(--gray-1); margin-top: 2px; }
-
+  .detail-inst { font-size: 13px; color: var(--gray-1); margin-top: 4px; }
   .detail-edit-btn {
     background: var(--gold-dim);
     border: 1px solid var(--gold-line);
     border-radius: 8px;
     color: var(--gold);
-    font-size: 12px;
-    font-weight: 700;
-    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 8px 14px;
     cursor: pointer;
-    min-height: 36px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    font-family: inherit;
+    transition: all 0.15s;
   }
+  .detail-edit-btn:hover { background: var(--gold-glow); }
 
+  /* ── FINANCIAL / SECTION BOXES ── */
   .financial-box {
     background: var(--s1);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
+    border-radius: var(--radius);
+    padding: 16px;
     margin-bottom: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
-
   .section-card {
     background: var(--s1);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
+    border-radius: var(--radius);
+    padding: 16px;
     margin-bottom: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
   .section-title {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 800;
     color: var(--gray-1);
-    letter-spacing: 1px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
     margin-bottom: 14px;
   }
-
   .fin-title {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 800;
     color: var(--gray-1);
-    letter-spacing: 1px;
-    margin-bottom: 10px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
   }
-
   .fin-row {
     display: flex;
     justify-content: space-between;
-    padding: 7px 0;
+    align-items: center;
+    padding: 9px 0;
     border-bottom: 1px solid var(--border);
     font-size: 13px;
   }
-
   .fin-row:last-child { border-bottom: none; }
 
+  /* ── COPY BLOCK ── */
   .copy-block {
     background: var(--s1);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
+    border-radius: var(--radius);
+    padding: 16px;
     margin-bottom: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
-
   .copy-block-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
-
   .copy-block-title {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 800;
     color: var(--gray-1);
-    letter-spacing: 1px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
   }
-
   .copy-text {
     background: var(--s3);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 12px;
+    padding: 14px;
     font-size: 13px;
     color: var(--gray-1);
     white-space: pre-wrap;
     word-break: break-all;
-    line-height: 1.6;
-    max-height: 200px;
+    line-height: 1.7;
+    max-height: 220px;
     overflow-y: auto;
   }
 
   .btn-link-full {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    padding: 15px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 700;
-    background: var(--gold);
-    color: #FFFFFF;
-    text-align: center;
+    padding: 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #D4A843 0%, #B8902E 100%);
+    color: #0B1120;
     text-decoration: none;
     margin-bottom: 12px;
-    min-height: 50px;
-    line-height: 20px;
-    letter-spacing: 0.6px;
-    box-shadow: 0 2px 8px rgba(201,168,75,0.35);
+    min-height: 52px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 18px rgba(212,168,67,0.35);
   }
 
   /* ── BACKUP ── */
   .backup-card {
     background: var(--s1);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: var(--radius);
+    padding: 18px;
     margin-bottom: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
-
-  .backup-card-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--white);
-    margin-bottom: 6px;
-  }
-
-  .backup-card-sub {
-    font-size: 13px;
-    color: var(--gray-1);
-    margin-bottom: 14px;
-  }
-
+  .backup-card-title { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 6px; }
+  .backup-card-sub   { font-size: 13px; color: var(--gray-1); margin-bottom: 14px; line-height: 1.5; }
   #file-input { display: none; }
-
   .file-label {
     display: block;
     width: 100%;
-    padding: 13px;
-    border-radius: 10px;
+    padding: 14px;
+    border-radius: var(--radius-sm);
     border: 1.5px dashed var(--border-hi);
     background: var(--s3);
     text-align: center;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     color: var(--gray-1);
     cursor: pointer;
-    min-height: 44px;
-    transition: border-color 0.15s, background 0.15s;
+    min-height: 48px;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+    font-family: inherit;
   }
-
-  .file-label:hover  { background: var(--gold-dim); border-color: var(--gold); }
-  .file-label:active { background: var(--gold-dim); border-color: var(--gold); }
+  .file-label:hover { background: var(--gold-dim); border-color: var(--gold); color: var(--gold); }
 
   /* ── TOAST ── */
   #toast {
     position: fixed;
-    bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
+    bottom: calc(var(--nav-h) + var(--safe-b) + 16px);
     left: 16px;
     right: 16px;
-    background: var(--s3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
+    background: var(--s2);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    padding: 13px 18px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--white);
     text-align: center;
     z-index: 999;
-    transform: translateY(0);
     opacity: 1;
     transition: opacity 0.3s;
     display: none;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+    letter-spacing: 0.2px;
   }
-
   #toast.visible { display: block; }
   #toast.hidden  { opacity: 0; }
 
@@ -673,226 +845,65 @@
   #dialog-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     z-index: 200;
-    display: flex;
-    align-items: flex-end;
     display: none;
+    align-items: flex-end;
   }
-
   #dialog-overlay.visible { display: flex; }
-
   #dialog-box {
     width: 100%;
     background: var(--s1);
-    border-top: 1px solid var(--border);
-    border-radius: 20px 20px 0 0;
-    padding: 20px 16px calc(var(--safe-b) + 20px);
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    border-radius: 22px 22px 0 0;
+    padding: 24px 16px calc(var(--safe-b) + 20px);
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.65);
   }
+  .dialog-title { font-size: 18px; font-weight: 800; color: var(--white); margin-bottom: 8px; letter-spacing: -0.3px; }
+  .dialog-msg   { font-size: 14px; color: var(--gray-1); margin-bottom: 22px; line-height: 1.6; }
+  .dialog-btns  { display: flex; flex-direction: column; gap: 10px; }
+  .dialog-btn   { width: 100%; padding: 15px; border-radius: var(--radius); font-size: 13px; font-weight: 800; border: none; cursor: pointer; min-height: 50px; letter-spacing: 0.6px; font-family: inherit; }
 
-  .dialog-title {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--white);
-    margin-bottom: 6px;
-  }
-
-  .dialog-msg {
-    font-size: 14px;
-    color: var(--gray-1);
-    margin-bottom: 20px;
-    line-height: 1.5;
-  }
-
-  .dialog-btns { display: flex; flex-direction: column; gap: 10px; }
-
-  .dialog-btn {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    min-height: 50px;
-  }
-
-  /* ── DIRECT TOGGLE ── */
-  .switch-wrap {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .switch {
-    position: relative;
-    width: 44px;
-    height: 26px;
-    flex-shrink: 0;
-  }
-
+  /* ── iOS SWITCH ── */
+  .switch-wrap { display: flex; align-items: center; gap: 10px; }
+  .switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
   .switch input { opacity: 0; width: 0; height: 0; }
-
   .slider {
     position: absolute;
     inset: 0;
     background: var(--gray-3);
     border-radius: 13px;
-    border: 1px solid var(--border);
-    transition: background 0.15s;
+    transition: background 0.2s;
     cursor: pointer;
   }
-
   .slider::before {
     content: '';
     position: absolute;
-    width: 20px;
-    height: 20px;
-    left: 2px;
-    top: 2px;
-    background: #FFFFFF;
+    width: 20px; height: 20px;
+    left: 3px; top: 3px;
+    background: var(--white);
     border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.20);
-    transition: transform 0.15s, background 0.15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
   }
-
   .switch input:checked + .slider { background: var(--gold); }
-  .switch input:checked + .slider::before { transform: translateX(18px); background: #FFFFFF; }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+  .switch-label { font-size: 14px; color: var(--white); font-weight: 500; }
 
-  .switch-label { font-size: 14px; color: var(--white); }
+  /* ── SECTION DIVIDER ── */
+  .section-divider { display: flex; align-items: center; gap: 10px; margin: 22px 0 16px; }
+  .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .section-divider span { font-size: 9px; font-weight: 800; color: var(--gray-2); letter-spacing: 2px; text-transform: uppercase; }
 
-  /* ── REFINAMENTOS PREMIUM ── */
-
-  /* Scroll suave e sutil */
-  #main::-webkit-scrollbar { width: 3px; }
-  #main::-webkit-scrollbar-track { background: transparent; }
-  #main::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
-
-  /* Título da página com linha dourada sutil */
-  .page-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--white);
-    margin-bottom: 16px;
-    letter-spacing: -0.3px;
-  }
-
-  /* Número stat mais refinado */
-  .stat-num {
-    font-size: 24px;
-    font-weight: 800;
-    color: var(--gold);
-    line-height: 1;
-    letter-spacing: -0.5px;
-  }
-
-  /* Alert card com hover */
-  .alert-card:hover { border-color: var(--border-hi); }
-
-  /* Preço do alerta na lista — destaque sutil */
-  .alert-pix {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--gold);
-    letter-spacing: -0.3px;
-  }
-
-  /* Preço detalhe — mais elegante */
-  .detail-pix {
-    font-size: 26px;
-    font-weight: 800;
-    color: var(--gold);
-    letter-spacing: -0.5px;
-  }
-
-  /* Separador de seção com label */
-  .section-divider {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 20px 0 14px;
-  }
-  .section-divider::before,
-  .section-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-  .section-divider span {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--gray-2);
-    letter-spacing: 1.5px;
-  }
-
-  /* Toast premium */
-  #toast {
-    background: var(--s3);
-    border: 1px solid var(--border-hi);
-    color: var(--white);
-    letter-spacing: 0.2px;
-  }
-
-  /* Nav tema claro — igual Mais Voo */
-  #nav {
-    border-top: 1px solid var(--border);
-    background: var(--navy);
-    box-shadow: 0 -2px 12px rgba(0,0,0,0.10);
-  }
-
-  .nav-btn { color: rgba(255,255,255,0.45); }
-  .nav-btn.active { color: var(--gold); }
-
-  /* Form label mais legível */
-  .form-label {
-    color: var(--gray-1);
-    font-size: 10px;
-    letter-spacing: 1.2px;
-  }
-
-  /* Calc preview title */
-  #calc-preview .preview-title {
-    color: var(--gray-1);
-    letter-spacing: 1.2px;
-  }
-
-  /* Profit warn mais elegante */
-  .profit-warn {
-    background: rgba(224,85,85,0.08);
-    border: 1px solid rgba(224,85,85,0.30);
-  }
-
-  /* ── HIDDEN ── */
-  .hidden { display: none !important; }
-
-  /* ── DIVIDER ── */
-  .divider {
-    height: 1px;
-    background: var(--border);
-    margin: 16px 0;
-  }
+  /* ── UTILS ── */
+  .hidden  { display: none !important; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
 
   /* ── DATES CHIP ── */
-  .dates-row {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 13px;
-    color: var(--gray-1);
-    margin-top: 4px;
-  }
-
-  .dates-lbl { font-size: 11px; color: var(--gray-2); margin-bottom: 2px; }
-
-  /* scroll-y for small screens */
-  @media (max-height: 600px) {
-    #main { padding-top: 10px; }
-  }
+  .dates-row { background: var(--s3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--gray-1); margin-top: 4px; line-height: 1.5; }
+  .dates-lbl { font-size: 10px; color: var(--gray-2); margin-bottom: 2px; font-weight: 700; letter-spacing: 1px; }
 
   /* ── AIRPORT AUTOCOMPLETE ── */
   .apt-wrap { position: relative; }
@@ -900,19 +911,19 @@
     position: absolute;
     top: calc(100% + 4px);
     left: 0; right: 0;
-    background: var(--s1);
+    background: var(--s2);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    z-index: 200;
-    max-height: 230px;
+    border-radius: var(--radius-sm);
+    z-index: 300;
+    max-height: 240px;
     overflow-y: auto;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6);
   }
   .apt-opt {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 11px 13px;
+    gap: 12px;
+    padding: 12px 14px;
     cursor: pointer;
     border-bottom: 1px solid var(--border);
     transition: background 0.1s;
@@ -920,52 +931,1070 @@
   .apt-opt:last-child { border-bottom: none; }
   .apt-opt:hover, .apt-opt:active { background: var(--gold-dim); }
   .apt-code {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     font-family: 'SF Mono', 'Menlo', monospace;
     color: var(--gold);
-    min-width: 38px;
-    letter-spacing: 1.5px;
+    min-width: 36px;
+    letter-spacing: 2px;
   }
-  .apt-city {
-    font-size: 14px;
-    font-weight: 600;
+  .apt-city  { font-size: 14px; font-weight: 600; color: var(--white); flex: 1; }
+  .apt-info  { font-size: 11px; color: var(--gray-2); text-align: right; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── PREMIUM DASHBOARD OVERRIDES ── */
+  :root {
+    --bg: #0D1420;
+    --s1: rgba(18,27,42,0.9);
+    --s2: #172235;
+    --s3: #0F1827;
+    --gold: #D8B26E;
+    --gold-light: #E8C98C;
+    --gold-dim: rgba(216,178,110,0.14);
+    --gold-glow: rgba(216,178,110,0.20);
+    --gold-line: rgba(216,178,110,0.30);
+    --white: #F6F8FC;
+    --gray-1: #A3B0C5;
+    --gray-2: #6F7F9B;
+    --gray-3: #223049;
+    --green: #31C48D;
+    --yellow: #F1C15D;
+    --red: #F87171;
+    --border: rgba(148,163,184,0.14);
+    --border-hi: rgba(216,178,110,0.34);
+    --navy: #0A111B;
+    --radius: 22px;
+    --radius-sm: 16px;
+    --shadow: 0 24px 60px rgba(1, 8, 20, 0.38);
+    --shadow-sm: 0 12px 30px rgba(1, 8, 20, 0.26);
+  }
+
+  html,
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(49,196,141,0.08), transparent 32%),
+      radial-gradient(circle at top right, rgba(216,178,110,0.14), transparent 28%),
+      linear-gradient(180deg, #09111B 0%, #0D1420 48%, #0B121C 100%);
     color: var(--white);
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 120px 120px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.5), transparent 85%);
+    opacity: 0.35;
+    z-index: 0;
+  }
+
+  #app {
+    position: relative;
+    isolation: isolate;
+    min-height: 100dvh;
+  }
+
+  #app-header {
+    position: sticky;
+    top: 0;
+    margin: 0;
+    padding: calc(var(--safe-t) + 16px) 20px 14px;
+    background: rgba(8,17,27,0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hdr-brand {
+    gap: 14px;
+    align-items: center;
+  }
+
+  .hdr-logo {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -1.6px;
+  }
+
+  .hdr-wordmark,
+  .hdr-context,
+  .hdr-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(18,27,42,0.72);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .hdr-wordmark {
+    color: var(--gold-light);
+    border-color: var(--gold-line);
+    background: rgba(216,178,110,0.12);
+  }
+
+  .hdr-context {
+    color: var(--white);
+  }
+
+  .hdr-count {
+    color: var(--gray-1);
+  }
+
+  #hdr-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  #main {
+    position: relative;
+    z-index: 1;
+    padding: 24px 18px calc(112px + var(--safe-b));
+  }
+
+  .page-shell,
+  .workspace-main,
+  .workspace-side,
+  .detail-main,
+  .detail-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .page-hero,
+  .workspace-grid,
+  .detail-layout,
+  .backup-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .backup-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hero-panel,
+  .section-card,
+  .financial-box,
+  .copy-block,
+  .backup-card,
+  #calc-preview,
+  .stat-box,
+  .alert-card {
+    background:
+      linear-gradient(180deg, rgba(20,31,48,0.96) 0%, rgba(12,21,33,0.94) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .hero-panel,
+  .section-card,
+  .financial-box,
+  .copy-block,
+  .backup-card,
+  #calc-preview {
+    padding: 22px;
+    margin-bottom: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .hero-panel::before,
+  .detail-header::before,
+  .section-card::before,
+  .financial-box::before,
+  .copy-block::before,
+  .backup-card::before,
+  #calc-preview::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
+    opacity: 0.8;
+    pointer-events: none;
+  }
+
+  .hero-panel-main {
+    min-height: 220px;
+  }
+
+  .hero-panel-side {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .hero-kicker,
+  .section-eyebrow,
+  .section-title,
+  .fin-title,
+  .copy-block-title,
+  .preview-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--gray-1);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .hero-kicker,
+  .section-eyebrow {
+    margin-bottom: 14px;
+  }
+
+  .page-title {
+    margin-bottom: 10px;
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.07em;
+    line-height: 1.02;
+  }
+
+  .page-subtitle {
+    margin-bottom: 0;
+    max-width: 760px;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--gray-1);
+  }
+
+  .hero-badge-row,
+  .alert-meta-row,
+  .detail-chip-row,
+  .support-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .hero-badge,
+  .mini-chip,
+  .detail-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gray-1);
+  }
+
+  .hero-badge strong,
+  .mini-chip strong,
+  .detail-chip strong {
+    color: var(--white);
+    font-weight: 800;
+  }
+
+  .mini-chip.default {
+    color: var(--gray-1);
+  }
+
+  .mini-chip.positive,
+  .detail-chip.positive {
+    color: var(--green);
+    border-color: rgba(49,196,141,0.24);
+    background: rgba(49,196,141,0.10);
+  }
+
+  .mini-chip.warn,
+  .detail-chip.warn {
+    color: var(--yellow);
+    border-color: rgba(241,193,93,0.26);
+    background: rgba(241,193,93,0.10);
+  }
+
+  .mini-chip.risk,
+  .detail-chip.risk {
+    color: var(--red);
+    border-color: rgba(248,113,113,0.24);
+    background: rgba(248,113,113,0.10);
+  }
+
+  .hero-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 18px 0;
+  }
+
+  #stats-bar,
+  .hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+  }
+
+  .stat-box {
+    position: relative;
+    overflow: hidden;
+    padding: 18px;
+    text-align: left;
+  }
+
+  .stat-box::after {
+    left: 18px;
+    right: 18px;
+    top: auto;
+    bottom: 0;
+    height: 2px;
+  }
+
+  .stat-num {
+    font-size: clamp(30px, 3vw, 42px);
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.08em;
+  }
+
+  .stat-lbl {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--gray-1);
+    letter-spacing: 0.14em;
+  }
+
+  .stat-note {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--gray-2);
+    line-height: 1.5;
+  }
+
+  .stat-positive .stat-num,
+  .stat-positive .metric-value {
+    color: var(--green);
+  }
+
+  .stat-warn .stat-num,
+  .stat-warn .metric-value {
+    color: var(--yellow);
+  }
+
+  .stat-risk .stat-num,
+  .stat-risk .metric-value {
+    color: var(--red);
+  }
+
+  .search-card,
+  .section-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+    background: rgba(15,24,39,0.74);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .section-bar {
+    flex-wrap: wrap;
+  }
+
+  .section-title-lg {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.03em;
+  }
+
+  .section-note {
+    font-size: 13px;
+    color: var(--gray-1);
+  }
+
+  #search-wrap {
+    margin: 0;
     flex: 1;
   }
-  .apt-info {
-    font-size: 11px;
+
+  .search-shell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(8,17,27,0.62);
+    border: 1px solid var(--border);
+  }
+
+  .search-shell::before {
+    content: '⌕';
     color: var(--gray-2);
+    font-size: 16px;
+  }
+
+  .search-input {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    font-size: 15px;
+    color: var(--white);
+  }
+
+  .search-input:focus {
+    border: none;
+    box-shadow: none;
+  }
+
+  #alert-list,
+  #pkg-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .alert-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: start;
+    padding: 20px;
+    border-left: none;
+    margin-bottom: 0;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+
+  .alert-card::before {
+    content: '';
+    position: absolute;
+    inset: 16px auto 16px 0;
+    width: 4px;
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(180deg, var(--gold), rgba(216,178,110,0.20));
+    opacity: 0.9;
+  }
+
+  .alert-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(216,178,110,0.22);
+    background: linear-gradient(180deg, rgba(25,38,58,0.98) 0%, rgba(13,22,35,0.96) 100%);
+    box-shadow: 0 18px 34px rgba(1,8,20,0.32);
+  }
+
+  .alert-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .alert-ref {
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+    font-size: 11px;
+    color: var(--gray-1);
+    letter-spacing: 0.14em;
+  }
+
+  .alert-ts {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    color: var(--gray-2);
+    font-size: 11px;
+  }
+
+  .alert-route {
+    font-size: clamp(22px, 3vw, 30px);
+    line-height: 1.04;
+    letter-spacing: -0.07em;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: initial;
+  }
+
+  .alert-airline {
+    margin-top: 0;
+    font-size: 14px;
+    color: var(--gray-1);
+  }
+
+  .alert-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    min-width: 176px;
+  }
+
+  .alert-pix {
+    font-size: clamp(28px, 3vw, 40px);
+    line-height: 1;
+    color: var(--white);
+    letter-spacing: -0.08em;
+  }
+
+  .badge {
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    margin-top: 0;
+    letter-spacing: 0.12em;
+  }
+
+  .badge-intl {
+    background: rgba(216,178,110,0.12);
+    color: var(--gold-light);
+    border-color: rgba(216,178,110,0.24);
+  }
+
+  .badge-nac {
+    background: rgba(49,196,141,0.10);
+    color: var(--green);
+    border-color: rgba(49,196,141,0.24);
+  }
+
+  .empty-state {
+    padding: 46px 22px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    background: rgba(15,24,39,0.68);
+  }
+
+  .empty-icon {
+    font-size: 34px;
+    margin-bottom: 12px;
+  }
+
+  .form-label {
+    margin-bottom: 10px;
+    font-size: 11px;
+    color: var(--gray-1);
+    letter-spacing: 0.16em;
+  }
+
+  .form-input,
+  .file-label {
+    min-height: 56px;
+    padding: 15px 16px;
+    background: rgba(8,17,27,0.64);
+    border: 1px solid rgba(148,163,184,0.16);
+    border-radius: 16px;
+    font-size: 15px;
+    color: var(--white);
+  }
+
+  .form-input:focus,
+  .file-label:hover {
+    border-color: var(--border-hi);
+    box-shadow: 0 0 0 4px rgba(216,178,110,0.10);
+    background: rgba(14,24,39,0.84);
+  }
+
+  .form-row {
+    gap: 12px;
+  }
+
+  .form-group {
+    margin-bottom: 0;
+  }
+
+  #airline-grid {
+    gap: 10px;
+    margin-bottom: 0;
+  }
+
+  .airline-btn {
+    min-height: 52px;
+    padding: 14px 10px;
+    border-radius: 16px;
+    background: rgba(8,17,27,0.62);
+    color: var(--gray-1);
+    border-color: rgba(148,163,184,0.16);
+    letter-spacing: 0.06em;
+  }
+
+  .airline-btn:hover {
+    border-color: rgba(216,178,110,0.18);
+    color: var(--white);
+    background: rgba(16,26,41,0.84);
+  }
+
+  .airline-btn.selected {
+    color: var(--white);
+    border-color: rgba(216,178,110,0.34);
+    background: linear-gradient(135deg, rgba(216,178,110,0.18), rgba(216,178,110,0.08));
+    box-shadow: inset 0 0 0 1px rgba(216,178,110,0.20);
+  }
+
+  .toggle-wrap {
+    padding: 4px;
+    background: rgba(8,17,27,0.62);
+    border-color: rgba(148,163,184,0.16);
+    border-radius: 16px;
+    gap: 4px;
+  }
+
+  .toggle-opt {
+    min-height: 44px;
+    border-radius: 12px;
+    color: var(--gray-1);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
+
+  .toggle-opt.active {
+    color: var(--white);
+    background: linear-gradient(135deg, rgba(216,178,110,0.24), rgba(216,178,110,0.10));
+    box-shadow: inset 0 0 0 1px rgba(216,178,110,0.18);
+  }
+
+  .switch-wrap {
+    gap: 12px;
+    padding: 13px 14px;
+    background: rgba(8,17,27,0.62);
+    border: 1px solid rgba(148,163,184,0.16);
+    border-radius: 16px;
+  }
+
+  .switch-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .slider {
+    background: rgba(111,127,155,0.32);
+  }
+
+  .btn,
+  .btn-link-full {
+    min-height: 56px;
+    border-radius: 18px;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+  }
+
+  .btn-gold,
+  .btn-link-full {
+    background: linear-gradient(135deg, #D8B26E 0%, #C59A53 100%);
+    color: #0A111B;
+    box-shadow: 0 10px 22px rgba(216,178,110,0.24);
+  }
+
+  .btn-gold:hover,
+  .btn-link-full:hover {
+    box-shadow: 0 14px 30px rgba(216,178,110,0.30);
+  }
+
+  .btn-red {
+    background: rgba(248,113,113,0.10);
+    border: 1px solid rgba(248,113,113,0.22);
+    color: var(--red);
+  }
+
+  .btn-ghost {
+    background: rgba(15,24,39,0.78);
+    border: 1px solid var(--border);
+    color: var(--gray-1);
+  }
+
+  .btn-sm {
+    min-height: 40px;
+    border-radius: 12px;
+    padding: 10px 14px;
+    letter-spacing: 0.12em;
+  }
+
+  .workspace-grid,
+  .detail-layout {
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.9fr);
+  }
+
+  .sticky-panel {
+    position: sticky;
+    top: 18px;
+  }
+
+  .form-actions {
+    display: grid;
+    gap: 10px;
+  }
+
+  .form-note,
+  .support-text,
+  .backup-card-sub {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--gray-1);
+  }
+
+  .support-list {
+    margin-top: 12px;
+  }
+
+  .detail-header {
+    padding: 24px;
+    margin-bottom: 0;
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius);
+    background:
+      radial-gradient(circle at top right, rgba(216,178,110,0.18), transparent 32%),
+      linear-gradient(180deg, rgba(21,32,49,0.98) 0%, rgba(11,19,30,0.96) 100%);
+  }
+
+  .detail-header-top {
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .detail-ref {
+    font-size: 11px;
+    color: var(--gray-1);
+    letter-spacing: 0.16em;
+  }
+
+  .detail-route {
+    margin: 10px 0;
+    font-size: clamp(30px, 4vw, 44px);
+    letter-spacing: -0.08em;
+  }
+
+  .detail-airline,
+  .detail-ts,
+  .detail-inst {
+    font-size: 14px;
+    color: var(--gray-1);
+  }
+
+  .detail-pix {
+    margin-top: 18px;
+    font-size: clamp(34px, 5vw, 54px);
+    letter-spacing: -0.1em;
+    color: var(--white);
+  }
+
+  .detail-edit-btn {
+    border-radius: 14px;
+    padding: 10px 14px;
+    background: rgba(216,178,110,0.12);
+  }
+
+  .detail-highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 22px;
+  }
+
+  .detail-metric {
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .detail-metric-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gray-1);
+  }
+
+  .detail-metric-value {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    color: var(--white);
+  }
+
+  .detail-metric.positive .detail-metric-value {
+    color: var(--green);
+  }
+
+  .detail-metric.warn .detail-metric-value {
+    color: var(--yellow);
+  }
+
+  .detail-metric.risk .detail-metric-value {
+    color: var(--red);
+  }
+
+  .financial-box,
+  .copy-block {
+    gap: 0;
+  }
+
+  .fin-row {
+    gap: 14px;
+    padding: 12px 0;
+    font-size: 14px;
+  }
+
+  .fin-row span:last-child {
+    color: var(--white);
+    font-weight: 700;
     text-align: right;
-    max-width: 120px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  }
+
+  .copy-block-top {
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+
+  .copy-text {
+    max-height: 280px;
+    border-radius: 14px;
+    background: rgba(8,17,27,0.62);
+    color: var(--gray-1);
+    line-height: 1.8;
+    word-break: break-word;
+  }
+
+  .backup-card-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+  }
+
+  #toast {
+    border-radius: 18px;
+    background: rgba(18,27,42,0.95);
+  }
+
+  #dialog-box {
+    background: linear-gradient(180deg, rgba(20,31,48,0.98) 0%, rgba(12,21,33,0.98) 100%);
+    border-top: 1px solid var(--border);
+  }
+
+  #nav {
+    background: rgba(10,17,27,0.86);
+    border-color: rgba(148,163,184,0.12);
+    box-shadow: 0 24px 40px rgba(1,8,20,0.45);
+  }
+
+  .nav-btn {
+    min-height: 56px;
+    gap: 4px;
+    color: var(--gray-2);
+  }
+
+  .nav-btn.active {
+    background: linear-gradient(135deg, rgba(216,178,110,0.16), rgba(216,178,110,0.06));
+    color: var(--white);
+    box-shadow: inset 0 0 0 1px rgba(216,178,110,0.16);
+  }
+
+  .nav-icon,
+  .nav-new-plus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .nav-btn.active .nav-icon,
+  .nav-btn.active .nav-new-plus {
+    background: rgba(216,178,110,0.14);
+  }
+
+  .nav-lbl {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+
+  @media (min-width: 1024px) {
+    #app-header {
+      margin: 24px 24px 0 296px;
+      padding: 18px 24px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    #main {
+      padding: 26px 24px 40px 296px;
+    }
+
+    #nav {
+      top: 24px;
+      bottom: 24px;
+      left: 24px;
+      right: auto;
+      width: 248px;
+      padding: 18px;
+      border-radius: 28px;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      flex: none;
+      flex-direction: row;
+      justify-content: flex-start;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: 18px;
+    }
+
+    .nav-lbl {
+      font-size: 12px;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .page-hero,
+    .workspace-grid,
+    .detail-layout,
+    .backup-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .sticky-panel {
+      position: static;
+    }
+  }
+
+  @media (max-width: 760px) {
+    #stats-bar,
+    .hero-metrics,
+    .backup-grid,
+    .detail-highlight-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .alert-card {
+      grid-template-columns: 1fr;
+    }
+
+    .alert-card-right {
+      min-width: 0;
+      align-items: flex-start;
+    }
+
+    .form-row {
+      flex-direction: column;
+    }
+
+    .btn-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    #app-header {
+      padding: calc(var(--safe-t) + 14px) 16px 12px;
+    }
+
+    #main {
+      padding: 18px 14px calc(104px + var(--safe-b));
+    }
+
+    .hdr-wordmark,
+    .hdr-context {
+      display: none;
+    }
+
+    .hero-panel,
+    .section-card,
+    .financial-box,
+    .copy-block,
+    .backup-card,
+    #calc-preview,
+    .detail-header,
+    .alert-card {
+      padding: 18px;
+      border-radius: 18px;
+    }
+
+    #stats-bar,
+    .hero-metrics,
+    .backup-grid,
+    .detail-highlight-grid {
+      grid-template-columns: 1fr;
+    }
+
+    #airline-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .detail-header-top,
+    .copy-block-top,
+    .section-bar,
+    .search-card {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (min-width: 480px) and (max-width: 1023px) {
+    #main { padding-left: 20px; padding-right: 20px; }
+  }
+  @media (max-height: 600px) and (max-width: 1023px) {
+    #main { padding-top: 12px; }
   }
 </style>
 </head>
 <body>
 <div id="app">
+  <header id="app-header">
+    <div class="hdr-brand">
+      <span class="hdr-logo">VCK</span>
+      <span class="hdr-wordmark">Alertas</span>
+    </div>
+    <div id="hdr-right"></div>
+  </header>
   <div id="main"></div>
-  <nav id="nav">
-    <button class="nav-btn active" id="nb-list" onclick="setPage('list')">
-      <span class="nav-icon">&#9741;</span>
-      Buscar
-    </button>
-    <button class="nav-btn" id="nb-new" onclick="setPage('new')">
-      <span class="nav-icon">+</span>
-      Novo
-    </button>
-    <button class="nav-btn" id="nb-pacotes" onclick="setPage('pacotes')">
-      <span class="nav-icon">&#9644;</span>
-      Pacotes
-    </button>
-    <button class="nav-btn" id="nb-backup" onclick="setPage('backup')">
-      <span class="nav-icon">&#8645;</span>
-      Backup
-    </button>
-  </nav>
 </div>
+
+<nav id="nav">
+  <button class="nav-btn active" id="nb-list" onclick="setPage('list')">
+    <span class="nav-icon">&#9741;</span>
+    <span class="nav-lbl">Alertas</span>
+  </button>
+  <button class="nav-btn nav-btn-new" id="nb-new" onclick="setPage('new')">
+    <span class="nav-new-plus">+</span>
+    <span class="nav-lbl">Novo</span>
+  </button>
+  <button class="nav-btn" id="nb-pacotes" onclick="setPage('pacotes')">
+    <span class="nav-icon">&#9644;</span>
+    <span class="nav-lbl">Pacotes</span>
+  </button>
+  <button class="nav-btn" id="nb-backup" onclick="setPage('backup')">
+    <span class="nav-icon">&#8645;</span>
+    <span class="nav-lbl">Backup</span>
+  </button>
+</nav>
 
 <div id="toast"></div>
 
@@ -1836,13 +2865,41 @@ function setPage(p) {
 // ─────────────────────────────────────────────
 // RENDER ROUTER
 // ─────────────────────────────────────────────
+function updateHdrRight() {
+  const el = document.getElementById('hdr-right');
+  if (!el) return;
+  const alerts = loadAlerts();
+  const packages = loadPackages();
+  let context = 'Painel';
+
+  if (currentDetail) {
+    context = 'Detalhe do alerta';
+  } else if (currentPage === 'list') {
+    context = 'Alertas';
+  } else if (currentPage === 'new') {
+    context = editingId ? 'Edição de alerta' : 'Novo alerta';
+  } else if (currentPage === 'backup') {
+    context = 'Backup';
+  } else if (currentPage === 'pacote-new') {
+    context = pkgEditingId ? 'Edição de pacote' : 'Novo pacote';
+  } else if (currentPage === 'pacotes') {
+    context = pkgCurrentDetail ? 'Detalhe do pacote' : 'Pacotes';
+  }
+
+  el.innerHTML = `
+    <span class="hdr-context">${context}</span>
+    <span class="hdr-count">${alerts.length} alertas</span>
+    <span class="hdr-count">${packages.length} pacotes</span>
+  `;
+}
+
 function render() {
   const main = document.getElementById('main');
+  updateHdrRight();
   if (currentDetail) {
     main.innerHTML = renderDetail(currentDetail);
   } else if (currentPage === 'list') {
     main.innerHTML = renderList();
-    // Restore scroll position etc
     const inp = document.getElementById('search-input');
     if (inp) {
       inp.value = searchQuery;
@@ -1875,6 +2932,45 @@ function render() {
   }
 }
 
+function getAlertSnapshot(alert) {
+  const pix = alert.pix || ((alert.avistaBase || 0) + (alert.avistaLucro || 0));
+
+  if (alert.paymentMode === 'avista') {
+    const profit = alert.avistaLucro || 0;
+    const economy = alert.mkt > 0 ? alert.mkt - (alert.pixDesconto || pix) : 0;
+    const tone = profit > 0 ? 'positive' : 'warn';
+
+    return {
+      pix,
+      profit,
+      economy,
+      tone,
+      label: profit > 0 ? `Lucro ${brl(profit)}` : 'Margem a revisar',
+    };
+  }
+
+  const calc = calcAlert(
+    alert.airline,
+    alert.miles,
+    alert.taxes,
+    alert.mkt,
+    alert.sellRate || 0,
+    alert.pix,
+    alert.type,
+    alert.rate
+  );
+  const profit = calc.profit || 0;
+  const economy = alert.mkt > 0 ? alert.mkt - pix : 0;
+
+  return {
+    pix,
+    profit,
+    economy,
+    tone: profit >= calc.floor ? 'positive' : 'risk',
+    label: `Lucro ${brl(profit)}`,
+  };
+}
+
 // ─────────────────────────────────────────────
 // LIST PAGE
 // ─────────────────────────────────────────────
@@ -1883,24 +2979,87 @@ function renderList() {
   const total  = alerts.length;
   const intl   = alerts.filter(a => a.type === 'intl').length;
   const nac    = alerts.filter(a => a.type === 'nac').length;
-
-  let statsHtml = '';
-  if (total > 0) {
-    statsHtml = `
-    <div id="stats-bar">
-      <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-lbl">TOTAL</div></div>
-      <div class="stat-box"><div class="stat-num">${intl}</div><div class="stat-lbl">INTL</div></div>
-      <div class="stat-box"><div class="stat-num">${nac}</div><div class="stat-lbl">NACIONAL</div></div>
-    </div>`;
-  }
+  const risk = alerts.filter(a => getAlertSnapshot(a).tone === 'risk').length;
+  const totalPix = alerts.reduce((sum, alert) => sum + getAlertSnapshot(alert).pix, 0);
+  const avgPix = total ? totalPix / total : 0;
+  const latestTs = alerts.reduce((max, alert) => Math.max(max, alert.ts || 0), 0);
 
   return `
-    <div class="page-title">VCK Alertas</div>
-    ${statsHtml}
-    <div id="search-wrap">
-      <input class="search-input" id="search-input" type="search" placeholder="Buscar por REF, rota, companhia..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="page-shell">
+      <div class="page-hero">
+        <section class="hero-panel hero-panel-main">
+          <div class="hero-kicker">Painel Executivo</div>
+          <div class="page-title">Alertas comerciais</div>
+          <div class="page-subtitle">Controle centralizado das oportunidades com leitura rápida de volume, mix e margem. O foco fica no que precisa de ação sem transformar a tela em formulário cru.</div>
+          <div class="hero-divider"></div>
+          <div class="hero-badge-row">
+            <span class="hero-badge"><strong>${total}</strong> alertas ativos</span>
+            <span class="hero-badge"><strong>${latestTs ? formatTs(latestTs) : 'Sem movimentação'}</strong> última atualização</span>
+          </div>
+        </section>
+
+        <aside class="hero-panel hero-panel-side">
+          <div>
+            <div class="hero-kicker">Visão rápida</div>
+            <div class="section-title-lg">Resultado principal acima da dobra</div>
+            <div class="section-note">Os indicadores críticos ficam organizados em um grid limpo para facilitar triagem e decisão.</div>
+          </div>
+          <div class="hero-badge-row">
+            <span class="mini-chip positive"><strong>${intl}</strong> internacionais</span>
+            <span class="mini-chip default"><strong>${nac}</strong> nacionais</span>
+            <span class="mini-chip ${risk ? 'risk' : 'positive'}"><strong>${risk}</strong> em atenção</span>
+          </div>
+        </aside>
+      </div>
+
+      <div id="stats-bar">
+        <div class="stat-box">
+          <div class="stat-num">${total}</div>
+          <div class="stat-lbl">Alertas ativos</div>
+          <div class="stat-note">Base operacional disponível para venda.</div>
+        </div>
+        <div class="stat-box stat-positive">
+          <div class="stat-num">${intl}</div>
+          <div class="stat-lbl">Internacionais</div>
+          <div class="stat-note">Mix premium com maior valor percebido.</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">${nac}</div>
+          <div class="stat-lbl">Nacionais</div>
+          <div class="stat-note">Oferta tática para giro rápido.</div>
+        </div>
+        <div class="stat-box ${risk ? 'stat-risk' : 'stat-positive'}">
+          <div class="stat-num">${risk}</div>
+          <div class="stat-lbl">Em atenção</div>
+          <div class="stat-note">Margens que pedem revisão imediata.</div>
+        </div>
+      </div>
+
+      <div class="search-card">
+        <div>
+          <div class="section-title-lg">Base de alertas</div>
+          <div class="section-note">${total ? 'Pesquise por rota, referência ou companhia para localizar oportunidades em segundos.' : 'Cadastre o primeiro alerta para começar a operação.'}</div>
+        </div>
+        <div id="search-wrap">
+          <div class="search-shell">
+            <input class="search-input" id="search-input" type="search" placeholder="Buscar por REF, rota ou companhia..." autocomplete="off" autocorrect="off" spellcheck="false">
+          </div>
+        </div>
+      </div>
+
+      <div class="section-bar">
+        <div>
+          <div class="section-title-lg">Leitura financeira</div>
+          <div class="section-note">Volume e ticket médio destacados para leitura imediata da carteira atual.</div>
+        </div>
+        <div class="hero-badge-row">
+          <span class="hero-badge"><strong>${brlFloor(totalPix)}</strong> volume listado</span>
+          <span class="hero-badge"><strong>${total ? brlFloor(avgPix) : 'R$ 0'}</strong> ticket médio</span>
+        </div>
+      </div>
+
+      <div id="alert-list"></div>
     </div>
-    <div id="alert-list"></div>
   `;
 }
 
@@ -1931,21 +3090,40 @@ function renderAlertList() {
   const sorted = [...filtered].sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
   el.innerHTML = sorted.map(a => {
-    const pix = a.pix || 0;
+    const snapshot = getAlertSnapshot(a);
+    const pix = snapshot.pix || 0;
     const typeClass = a.type === 'intl' ? 'badge-intl' : 'badge-nac';
     const typeLbl   = a.type === 'intl' ? 'INTL' : 'NAC';
     const aName = (a.airline === 'OUTRO' || a.airline === 'AZUL' || a.airline === 'TAP') && a.airname
       ? a.airname : airlineName(a.airline);
+    const isAvista = a.paymentMode === 'avista';
+    const paymentNote = isAvista
+      ? 'Valor direto'
+      : (a.semJuros && a.semJurosParc > 0 ? `${a.semJurosParc}x sem juros` : 'Precificação por milhas');
+    const actionChip = snapshot.economy > 0
+      ? `<span class="mini-chip positive">Economia ${brl(snapshot.economy)}</span>`
+      : '';
 
     return `<div class="alert-card" onclick="openDetail('${a.id}')">
       <div class="alert-card-body">
-        <div class="alert-ref">REF: ${a.ref}${a.ts ? `<span class="alert-ts">${formatTs(a.ts)}</span>` : ''}</div>
-        <div class="alert-route">${a.origin || '?'} ⇄ ${a.dest || '?'} ${a.flag || ''}</div>
+        <div class="alert-ref">REF ${a.ref}${a.ts ? `<span class="alert-ts">${formatTs(a.ts)}</span>` : ''}</div>
+        <div class="alert-route">${a.origin || '?'} &rarr; ${a.dest || '?'}${a.flag ? ` ${a.flag}` : ''}</div>
         <div class="alert-airline">${aName}</div>
+        <div class="alert-meta-row">
+          <span class="badge ${typeClass}">${typeLbl}</span>
+          <span class="mini-chip default">${paymentNote}</span>
+          ${a.direct ? `<span class="mini-chip positive">Voo direto</span>` : ''}
+          <span class="mini-chip ${snapshot.tone}">${snapshot.label}</span>
+          ${actionChip}
+        </div>
       </div>
+
       <div class="alert-card-right">
-        <div class="alert-pix">${brlFloor(pix)}</div>
-        <span class="badge ${typeClass}">${typeLbl}</span>
+        <div>
+          <div class="alert-pix">${brlFloor(pix)}</div>
+          <div class="section-note">${isAvista && a.pixDesconto > 0 ? `Pix ${brl(a.pixDesconto)}` : 'Preço principal por pessoa'}</div>
+        </div>
+        <span class="mini-chip ${a.boleto ? 'warn' : 'default'}">${a.boleto ? 'Boleto disponível' : 'Pronto para emissão'}</span>
       </div>
     </div>`;
   }).join('');
@@ -2014,11 +3192,12 @@ function renderDetail(alert) {
 
   const aName = (alert.airline === 'OUTRO' || alert.airline === 'AZUL' || alert.airline === 'TAP') && alert.airname
     ? alert.airname : airlineName(alert.airline);
+  const snapshot = getAlertSnapshot(alert);
 
   const link = sanitizeLink(alert.link);
   const linkBtn = link
     ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="btn-link-full">ABRIR CIA</a>`
-    : `<button class="btn btn-ghost" style="margin-bottom:12px;cursor:not-allowed;opacity:0.5">SEM LINK CADASTRADO</button>`;
+    : `<button class="btn btn-ghost" style="cursor:not-allowed;opacity:0.5">SEM LINK CADASTRADO</button>`;
 
   const waCopy = buildWhatsApp(alert);
   const htmlCopy = buildHtmlCard(alert);
@@ -2026,54 +3205,87 @@ function renderDetail(alert) {
   window._copyTexts = { wa: waCopy, html: htmlCopy };
 
   return `
-    <button id="back-btn" onclick="backToList()">&#8592; Voltar</button>
+    <div class="page-shell">
+      <button id="back-btn" onclick="backToList()">&#8592; Voltar</button>
 
-    <div class="detail-header">
-      <div class="detail-header-top">
-        <div>
-          <div class="detail-ref">REF: ${alert.ref}</div>
-          <div class="detail-route">${alert.origin || '?'} ⇄ ${alert.dest || '?'} ${alert.flag || ''}</div>
-          <div class="detail-airline">${aName} &bull; <span class="badge ${alert.type === 'intl' ? 'badge-intl' : 'badge-nac'}">${alert.type === 'intl' ? 'INTL' : 'NAC'}</span></div>
-          ${alert.ts ? `<div class="detail-ts">Gerado em ${formatTs(alert.ts)}</div>` : ''}
+      <div class="detail-layout">
+        <div class="detail-main">
+          <div class="detail-header">
+            <div class="detail-header-top">
+              <div>
+                <div class="detail-ref">REF: ${alert.ref}</div>
+                <div class="detail-route">${alert.origin || '?'} &rarr; ${alert.dest || '?'} ${alert.flag || ''}</div>
+                <div class="detail-airline">${aName}</div>
+                ${alert.ts ? `<div class="detail-ts">Gerado em ${formatTs(alert.ts)}</div>` : ''}
+              </div>
+              <button class="detail-edit-btn" onclick="editAlert('${alert.id}')">Editar</button>
+            </div>
+
+            <div class="detail-chip-row">
+              <span class="badge ${alert.type === 'intl' ? 'badge-intl' : 'badge-nac'}">${alert.type === 'intl' ? 'INTL' : 'NAC'}</span>
+              <span class="detail-chip ${snapshot.tone}">${snapshot.label}</span>
+              ${alert.direct ? '<span class="detail-chip positive">Voo direto</span>' : ''}
+              ${alert.boleto ? '<span class="detail-chip warn">Boleto disponível</span>' : ''}
+            </div>
+
+            <div class="detail-pix">${brl(pix)}</div>
+            ${instDesc ? `<div class="detail-inst">${instDesc}</div>` : ''}
+
+            <div class="detail-highlight-grid">
+              <div class="detail-metric">
+                <span class="detail-metric-label">Preço principal</span>
+                <span class="detail-metric-value">${brl(pix)}</span>
+              </div>
+              <div class="detail-metric ${snapshot.economy > 0 ? 'positive' : 'warn'}">
+                <span class="detail-metric-label">Economia cliente</span>
+                <span class="detail-metric-value">${snapshot.economy > 0 ? brl(snapshot.economy) : '—'}</span>
+              </div>
+              <div class="detail-metric ${snapshot.tone}">
+                <span class="detail-metric-label">${snapshot.tone === 'risk' ? 'Margem em risco' : 'Lucro estimado'}</span>
+                <span class="detail-metric-value">${brl(snapshot.profit || 0)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="financial-box">
+            <div class="fin-title">Financeiro</div>
+            ${financeRows}
+          </div>
+
+          <div class="financial-box">
+            <div class="fin-title">Datas disponíveis</div>
+            <div class="fin-row"><span style="color:var(--gray-1)">Ida</span><span>${alert.dOut || '—'}</span></div>
+            <div class="fin-row"><span style="color:var(--gray-1)">Volta</span><span>${alert.dIn || '—'}</span></div>
+          </div>
         </div>
-        <button class="detail-edit-btn" onclick="editAlert('${alert.id}')">Editar</button>
+
+        <aside class="detail-side">
+          <div class="section-card sticky-panel">
+            <div class="section-eyebrow">Ações rápidas</div>
+            <div class="support-text">Distribua a oportunidade com o mesmo padrão visual em todos os canais.</div>
+            ${linkBtn}
+          </div>
+
+          <div class="copy-block">
+            <div class="copy-block-top">
+              <div class="copy-block-title">WhatsApp</div>
+              <button class="btn-sm btn-gold" onclick="copyText(window._copyTexts.wa, this)">Copiar</button>
+            </div>
+            <div class="copy-text">${escHtml(waCopy)}</div>
+          </div>
+
+          <div class="copy-block">
+            <div class="copy-block-top">
+              <div class="copy-block-title">HTML Card</div>
+              <button class="btn-sm btn-gold" onclick="copyText(window._copyTexts.html, this)">Copiar</button>
+            </div>
+            <div class="copy-text">${escHtml(htmlCopy)}</div>
+          </div>
+
+          <button class="btn btn-red" onclick="confirmDelete('${alert.id}')">Excluir alerta</button>
+        </aside>
       </div>
-      <div class="detail-pix">${brl(pix)}</div>
-      ${instDesc ? `<div class="detail-inst">${instDesc}</div>` : ''}
-      ${alert.direct ? '<div style="margin-top:6px;font-size:12px;color:var(--gold);font-weight:700;">VOO DIRETO</div>' : ''}
     </div>
-
-    <div class="financial-box">
-      <div class="fin-title">FINANCEIRO</div>
-      ${financeRows}
-    </div>
-
-    <div class="financial-box">
-      <div class="fin-title">DATAS</div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Ida</span><span>${alert.dOut || '—'}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Volta</span><span>${alert.dIn || '—'}</span></div>
-    </div>
-
-    ${linkBtn}
-
-    <div class="copy-block">
-      <div class="copy-block-top">
-        <div class="copy-block-title">WHATSAPP</div>
-        <button class="btn-sm btn-gold" onclick="copyText(window._copyTexts.wa, this)">Copiar</button>
-      </div>
-      <div class="copy-text">${escHtml(waCopy)}</div>
-    </div>
-
-    <div class="copy-block">
-      <div class="copy-block-top">
-        <div class="copy-block-title">HTML CARD</div>
-        <button class="btn-sm btn-gold" onclick="copyText(window._copyTexts.html, this)">Copiar</button>
-      </div>
-      <div class="copy-text">${escHtml(htmlCopy)}</div>
-    </div>
-
-    <button class="btn btn-red" onclick="confirmDelete('${alert.id}')">Excluir alerta</button>
-    <div style="height:8px"></div>
   `;
 }
 
@@ -2144,175 +3356,228 @@ function editAlert(id) {
 // ─────────────────────────────────────────────
 function renderForm() {
   return `
-    <div class="page-title">${editingId ? 'Editar Alerta' : 'Novo Alerta'}</div>
+    <div class="page-shell">
+      <div class="page-hero">
+        <section class="hero-panel hero-panel-main">
+          <div class="hero-kicker">Cadastro operacional</div>
+          <div class="page-title">${editingId ? 'Editar alerta' : 'Novo alerta'}</div>
+          <div class="page-subtitle">Fluxo de cadastro organizado em blocos claros, com tipografia forte, cálculo destacado e ações consistentes entre desktop e mobile.</div>
+        </section>
 
-    <div class="form-section">
-      <div class="form-label">COMPANHIA</div>
-      <div id="airline-grid">
-        ${['LATAM','SMILES','GOL','AZUL','TAP','OUTRO'].map(a =>
-          `<button class="airline-btn ${fAirline === a ? 'selected' : ''}" onclick="selectAirline('${a}')">${a}</button>`
-        ).join('')}
+        <aside class="hero-panel hero-panel-side">
+          <div>
+            <div class="hero-kicker">Configuração ativa</div>
+            <div class="section-title-lg">${fPayment === 'milhas' ? 'Precificação por milhas' : 'Valor direto com margem'}</div>
+            <div class="section-note">A lateral concentra o preview financeiro e as ações para reduzir ruído no preenchimento.</div>
+          </div>
+          <div class="hero-badge-row">
+            <span class="mini-chip default"><strong>${fAirline}</strong> companhia</span>
+            <span class="mini-chip ${fType === 'intl' ? 'warn' : 'positive'}"><strong>${fType === 'intl' ? 'INTL' : 'NAC'}</strong> mercado</span>
+            <span class="mini-chip ${fSemJuros ? 'positive' : 'default'}"><strong>${fSemJuros ? `${fSemJurosParc}x` : 'off'}</strong> sem juros</span>
+          </div>
+        </aside>
       </div>
-      <div id="custom-airline-fields"></div>
-    </div>
 
-    <div class="form-section">
-      <div class="form-label">TIPO</div>
-      <div class="toggle-wrap">
-        <button class="toggle-opt ${fType === 'intl' ? 'active' : ''}" onclick="selectType('intl')">Internacional</button>
-        <button class="toggle-opt ${fType === 'nac'  ? 'active' : ''}" onclick="selectType('nac')">Nacional</button>
-      </div>
-    </div>
+      <div class="workspace-grid">
+        <div class="workspace-main">
+          <div class="section-card">
+            <div class="section-eyebrow">Estrutura comercial</div>
+            <div class="form-section">
+              <div class="form-label">Companhia</div>
+              <div id="airline-grid">
+                ${['LATAM','SMILES','GOL','AZUL','TAP','OUTRO'].map(a =>
+                  `<button class="airline-btn ${fAirline === a ? 'selected' : ''}" onclick="selectAirline('${a}')">${a}</button>`
+                ).join('')}
+              </div>
+              <div id="custom-airline-fields"></div>
+            </div>
 
-    <div class="form-section">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">ORIGEM</label>
-          <input class="form-input" id="f-origin" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" oninput="updateCalc()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">DESTINO</label>
-          <input class="form-input" id="f-dest" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" oninput="updateCalc()">
-        </div>
-      </div>
-    </div>
+            <div class="form-section">
+              <div class="form-label">Tipo</div>
+              <div class="toggle-wrap">
+                <button class="toggle-opt ${fType === 'intl' ? 'active' : ''}" onclick="selectType('intl')">Internacional</button>
+                <button class="toggle-opt ${fType === 'nac'  ? 'active' : ''}" onclick="selectType('nac')">Nacional</button>
+              </div>
+            </div>
+          </div>
 
-    <div class="form-section">
-      <div class="form-row" style="align-items:center">
-        <div class="form-group" style="flex:0 0 70px">
-          <label class="form-label">FLAG</label>
-          <input class="form-input" id="f-flag" type="text" placeholder="&#127482;&#127480;" style="text-align:center;font-size:22px" maxlength="4">
-        </div>
-        <div class="form-group" style="flex:1;padding-top:22px">
-          <div class="switch-wrap">
-            <label class="switch">
-              <input type="checkbox" id="f-direct">
-              <span class="slider"></span>
-            </label>
-            <span class="switch-label">Voo Direto</span>
+          <div class="section-card">
+            <div class="section-eyebrow">Rota</div>
+            <div class="form-section">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Origem</label>
+                  <input class="form-input" id="f-origin" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" oninput="updateCalc()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Destino</label>
+                  <input class="form-input" id="f-dest" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" oninput="updateCalc()">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-row" style="align-items:center">
+                <div class="form-group" style="flex:0 0 84px">
+                  <label class="form-label">Flag</label>
+                  <input class="form-input" id="f-flag" type="text" placeholder="&#127482;&#127480;" style="text-align:center;font-size:22px" maxlength="4">
+                </div>
+                <div class="form-group" style="flex:1;padding-top:22px">
+                  <div class="switch-wrap">
+                    <label class="switch">
+                      <input type="checkbox" id="f-direct">
+                      <span class="slider"></span>
+                    </label>
+                    <span class="switch-label">Voo Direto</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Modelo de precificação</div>
+            <div class="form-section">
+              <div class="form-label">Modo</div>
+              <div class="toggle-wrap">
+                <button class="toggle-opt ${fPayment === 'milhas' ? 'active' : ''}" onclick="selectPayment('milhas')">Por Milhas</button>
+                <button class="toggle-opt ${fPayment === 'avista' ? 'active' : ''}" onclick="selectPayment('avista')">Valor Direto</button>
+              </div>
+            </div>
+
+            ${fPayment === 'milhas' ? `
+            <div class="form-section">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Milhas</label>
+                  <input class="form-input" id="f-miles" type="text" inputmode="decimal" placeholder="0" oninput="updateCalc()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Taxas (R$)</label>
+                  <input class="form-input" id="f-taxes" type="text" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Venda/Mil (R$)</label>
+                  <input class="form-input" id="f-sellrate" type="text" inputmode="decimal" placeholder="ex: 30,00" step="0.01" oninput="updateCalc()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Preço cia (R$)</label>
+                  <input class="form-input" id="f-mkt" type="text" inputmode="decimal" placeholder="auto (toque para fixar)" step="0.01" oninput="mktManual=true;updateCalc()">
+                </div>
+              </div>
+              <div class="form-row" style="margin-top:8px">
+                <div class="form-group">
+                  <label class="form-label" style="color:var(--gray-2)">Pix override (opcional)</label>
+                  <input class="form-input" id="f-pix" type="text" inputmode="decimal" placeholder="use apenas se quiser fixar" step="0.01" oninput="updateCalc()" style="opacity:0.7">
+                </div>
+              </div>
+            </div>
+            ` : `
+            <div class="form-section">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Valor à vista (R$)</label>
+                  <input class="form-input" id="f-avista" type="text" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Meu lucro (R$)</label>
+                  <input class="form-input" id="f-avista-lucro" type="text" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
+                </div>
+              </div>
+              <div class="form-row" style="margin-top:8px">
+                <div class="form-group">
+                  <label class="form-label">Preço cia (R$)</label>
+                  <input class="form-input" id="f-mkt" type="text" inputmode="decimal" placeholder="para comparação" step="0.01" oninput="mktManual=true;updateCalc()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="color:var(--gray-2)">Valor no Pix (opcional)</label>
+                  <input class="form-input" id="f-pix-desconto" type="text" inputmode="decimal" placeholder="ex: 2800,00" step="0.01" oninput="updateCalc()" style="opacity:0.7">
+                </div>
+              </div>
+            </div>
+            `}
+          </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Condições de pagamento</div>
+            <div class="form-section">
+              <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+                <div style="flex:0 0 auto;padding-top:2px">
+                  <div class="switch-wrap">
+                    <label class="switch">
+                      <input type="checkbox" id="f-semjuros" ${fSemJuros ? 'checked' : ''} onchange="toggleSemJuros(this.checked)">
+                      <span class="slider"></span>
+                    </label>
+                    <span class="switch-label">Sem Juros</span>
+                  </div>
+                </div>
+                <div id="semjuros-wrap" style="${fSemJuros ? 'flex:1;min-width:130px' : 'display:none'}">
+                  <label class="form-label">Nº parcelas sem juros</label>
+                  <input class="form-input" id="f-semjurosparc" type="number" inputmode="numeric" min="1" max="24" placeholder="Ex: 6" value="${fSemJurosParc}" oninput="fSemJurosParc=parseInt(this.value)||2;updateCalc()">
+                </div>
+                <div style="flex:0 0 auto;padding-top:2px">
+                  <div class="switch-wrap">
+                    <label class="switch">
+                      <input type="checkbox" id="f-boleto" ${fBoleto ? 'checked' : ''} onchange="fBoleto=this.checked;updateCalc()">
+                      <span class="slider"></span>
+                    </label>
+                    <span class="switch-label">Boleto</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Datas e distribuição</div>
+            <div class="form-section">
+              <div class="form-group">
+                <label class="form-label">Datas ida</label>
+                <input class="form-input" id="f-dout" type="text" placeholder="Mai 06, 27, 28" autocorrect="off">
+              </div>
+              <div class="form-group" style="margin-top:12px">
+                <label class="form-label">Datas volta</label>
+                <input class="form-input" id="f-din" type="text" placeholder="Mai 13 | Jun 03, 06" autocorrect="off">
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-group">
+                <label class="form-label">Link cia</label>
+                <input class="form-input" id="f-link" type="url" placeholder="https://..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" oninput="sanitizeLinkInput()">
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="form-section">
-      <div class="form-label">MODO</div>
-      <div class="toggle-wrap">
-        <button class="toggle-opt ${fPayment === 'milhas' ? 'active' : ''}" onclick="selectPayment('milhas')">Por Milhas</button>
-        <button class="toggle-opt ${fPayment === 'avista' ? 'active' : ''}" onclick="selectPayment('avista')">Valor Direto</button>
-      </div>
-    </div>
-
-    ${fPayment === 'milhas' ? `
-    <div class="form-section">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">MILHAS</label>
-          <input class="form-input" id="f-miles" type="text" inputmode="decimal" placeholder="0" oninput="updateCalc()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">TAXAS (R$)</label>
-          <input class="form-input" id="f-taxes" type="text" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
-        </div>
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">VENDA/MIL (R$)</label>
-          <input class="form-input" id="f-sellrate" type="text" inputmode="decimal" placeholder="ex: 30,00" step="0.01" oninput="updateCalc()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">PRECO CIA (R$)</label>
-          <input class="form-input" id="f-mkt" type="text" inputmode="decimal" placeholder="auto (toque para fixar)" step="0.01" oninput="mktManual=true;updateCalc()">
-        </div>
-      </div>
-      <div class="form-row" style="margin-top:8px">
-        <div class="form-group">
-          <label class="form-label" style="color:var(--gray-2)">PIX OVERRIDE (opcional)</label>
-          <input class="form-input" id="f-pix" type="text" inputmode="decimal" placeholder="so se quiser fixar" step="0.01" oninput="updateCalc()" style="opacity:0.7">
-        </div>
-      </div>
-    </div>
-    ` : `
-    <div class="form-section">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">VALOR À VISTA (R$)</label>
-          <input class="form-input" id="f-avista" type="text" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">MEU LUCRO (R$)</label>
-          <input class="form-input" id="f-avista-lucro" type="text" inputmode="decimal" placeholder="0,00" step="0.01" oninput="updateCalc()">
-        </div>
-      </div>
-      <div class="form-row" style="margin-top:8px">
-        <div class="form-group">
-          <label class="form-label">PRECO CIA (R$)</label>
-          <input class="form-input" id="f-mkt" type="text" inputmode="decimal" placeholder="para comparação" step="0.01" oninput="mktManual=true;updateCalc()">
-        </div>
-        <div class="form-group">
-          <label class="form-label" style="color:var(--gray-2)">VALOR NO PIX (R$) — opcional</label>
-          <input class="form-input" id="f-pix-desconto" type="text" inputmode="decimal" placeholder="ex: 2800,00" step="0.01" oninput="updateCalc()" style="opacity:0.7">
-        </div>
-      </div>
-    </div>
-    `}
-
-    <div class="form-section">
-      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
-        <div style="flex:0 0 auto;padding-top:2px">
-          <div class="switch-wrap">
-            <label class="switch">
-              <input type="checkbox" id="f-semjuros" ${fSemJuros ? 'checked' : ''} onchange="toggleSemJuros(this.checked)">
-              <span class="slider"></span>
-            </label>
-            <span class="switch-label">Sem Juros</span>
+        <aside class="workspace-side">
+          <div id="calc-preview" class="sticky-panel">
+            <div class="preview-title">Cálculo automático</div>
+            <div id="calc-rows"><div style="color:var(--gray-2);font-size:13px">Preencha milhas, taxas ou valor direto para ver o resumo financeiro.</div></div>
           </div>
-        </div>
-        <div id="semjuros-wrap" style="${fSemJuros ? 'flex:1;min-width:130px' : 'display:none'}">
-          <label class="form-label">Nº PARCELAS SEM JUROS</label>
-          <input class="form-input" id="f-semjurosparc" type="number" inputmode="numeric" min="1" max="24" placeholder="Ex: 6" value="${fSemJurosParc}" oninput="fSemJurosParc=parseInt(this.value)||2;updateCalc()">
-        </div>
-        <div style="flex:0 0 auto;padding-top:2px">
-          <div class="switch-wrap">
-            <label class="switch">
-              <input type="checkbox" id="f-boleto" ${fBoleto ? 'checked' : ''} onchange="fBoleto=this.checked;updateCalc()">
-              <span class="slider"></span>
-            </label>
-            <span class="switch-label">Boleto</span>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Checklist</div>
+            <div class="support-text">Revise margem, datas, parcelamento e link oficial antes de salvar. O objetivo aqui é cadenciar o preenchimento com menos ruído e mais clareza.</div>
+            <div class="support-list">
+              <span class="mini-chip ${fSemJuros ? 'positive' : 'default'}">${fSemJuros ? `${fSemJurosParc}x sem juros` : 'Parcelamento padrão'}</span>
+              <span class="mini-chip ${fBoleto ? 'warn' : 'default'}">${fBoleto ? 'Boleto ativo' : 'Sem boleto'}</span>
+              <span class="mini-chip ${fPayment === 'avista' ? 'warn' : 'default'}">${fPayment === 'avista' ? 'Valor direto' : 'Milhas'}</span>
+            </div>
           </div>
-        </div>
+
+          <div class="form-actions">
+            <button class="btn btn-gold" onclick="saveForm()">${editingId ? 'Salvar alterações' : 'Gerar alerta'}</button>
+            <button class="btn btn-ghost" onclick="cancelForm()">Cancelar</button>
+          </div>
+        </aside>
       </div>
     </div>
-
-    <div id="calc-preview">
-      <div class="preview-title">CALCULO AUTOMATICO</div>
-      <div id="calc-rows"><div style="color:var(--gray-2);font-size:13px">Preencha milhas e taxas para calcular.</div></div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-group">
-        <label class="form-label">DATAS IDA</label>
-        <input class="form-input" id="f-dout" type="text" placeholder="Mai 06, 27, 28" autocorrect="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label">DATAS VOLTA</label>
-        <input class="form-input" id="f-din" type="text" placeholder="Mai 13 | Jun 03, 06" autocorrect="off">
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-group">
-        <label class="form-label">LINK CIA</label>
-        <input class="form-input" id="f-link" type="url" placeholder="https://..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" oninput="sanitizeLinkInput()">
-      </div>
-    </div>
-
-    <button class="btn btn-gold" onclick="saveForm()" style="margin-bottom:10px">${editingId ? 'Salvar alteracoes' : 'Gerar Alerta'}</button>
-    <button class="btn btn-ghost" onclick="cancelForm()">Cancelar</button>
-    <div style="height:8px"></div>
   `;
 }
 
@@ -2759,24 +4024,46 @@ function renderBackup() {
     `${packages.length} pacote${packages.length !== 1 ? 's' : ''}`,
   ].join(' · ');
   return `
-    <div class="page-title">Backup</div>
+    <div class="page-shell">
+      <div class="page-hero">
+        <section class="hero-panel hero-panel-main">
+          <div class="hero-kicker">Governança</div>
+          <div class="page-title">Backup e integridade</div>
+          <div class="page-subtitle">Exportação, importação e limpeza em um fluxo mais sóbrio e controlado, mantendo clareza operacional sobre o volume armazenado.</div>
+        </section>
 
-    <div class="backup-card">
-      <div class="backup-card-title">Exportar dados</div>
-      <div class="backup-card-sub">${subDesc}</div>
-      <button class="btn btn-gold" onclick="exportData()">Exportar JSON</button>
-    </div>
+        <aside class="hero-panel hero-panel-side">
+          <div>
+            <div class="hero-kicker">Resumo</div>
+            <div class="section-title-lg">Base atual</div>
+            <div class="section-note">${subDesc}</div>
+          </div>
+          <div class="hero-badge-row">
+            <span class="mini-chip default"><strong>${alerts.length}</strong> alertas</span>
+            <span class="mini-chip default"><strong>${packages.length}</strong> pacotes</span>
+          </div>
+        </aside>
+      </div>
 
-    <div class="backup-card">
-      <div class="backup-card-title">Importar dados</div>
-      <div class="backup-card-sub">Selecione um arquivo .json exportado anteriormente</div>
-      <label for="file-input" class="file-label">Selecionar arquivo .json</label>
-    </div>
+      <div class="backup-grid">
+        <div class="backup-card">
+          <div class="backup-card-title">Exportar dados</div>
+          <div class="backup-card-sub">Gere um JSON completo para compartilhar, auditar ou armazenar externamente sem perder estrutura.</div>
+          <button class="btn btn-gold" onclick="exportData()">Exportar JSON</button>
+        </div>
 
-    <div class="backup-card">
-      <div class="backup-card-title">Limpar dados</div>
-      <div class="backup-card-sub">Remove todos os alertas e pacotes permanentemente</div>
-      <button class="btn btn-red" onclick="confirmClearAll()">Limpar tudo</button>
+        <div class="backup-card">
+          <div class="backup-card-title">Importar dados</div>
+          <div class="backup-card-sub">Selecione um arquivo já exportado para substituir a base atual ou mesclar registros.</div>
+          <label for="file-input" class="file-label">Selecionar arquivo .json</label>
+        </div>
+
+        <div class="backup-card">
+          <div class="backup-card-title">Limpar dados</div>
+          <div class="backup-card-sub">Ação crítica para reset total da base. Use somente quando o descarte for intencional.</div>
+          <button class="btn btn-red" onclick="confirmClearAll()">Limpar tudo</button>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -3025,13 +4312,68 @@ function buildPackageWhatsApp(pkg) {
 // PACOTES — LIST PAGE
 // ─────────────────────────────────────────────
 function renderPackageList() {
+  const pkgs = loadPackages();
+  const total = pkgs.length;
+  const direct = pkgs.filter(p => p.direct).length;
+  const totalValor = pkgs.reduce((sum, p) => sum + (p.valor || 0), 0);
+  const avg = total ? totalValor / total : 0;
+
   return `
-    <div class="page-title">VCK Pacotes</div>
-    <div id="search-wrap">
-      <input class="search-input" id="pkg-search" type="search" placeholder="Buscar por REF, destino..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="page-shell">
+      <div class="page-hero">
+        <section class="hero-panel hero-panel-main">
+          <div class="hero-kicker">Portfólio</div>
+          <div class="page-title">Pacotes comerciais</div>
+          <div class="page-subtitle">Produtos consolidados com leitura clara de valor, composição e fornecedor, seguindo a mesma linguagem visual do dashboard principal.</div>
+        </section>
+
+        <aside class="hero-panel hero-panel-side">
+          <div>
+            <div class="hero-kicker">Ação principal</div>
+            <div class="section-title-lg">Montagem rápida de pacote</div>
+            <div class="section-note">Cadastre valor, datas, itens e condições sem perder ritmo operacional.</div>
+          </div>
+          <button class="btn btn-gold" onclick="goNewPkg()">Novo pacote</button>
+        </aside>
+      </div>
+
+      <div id="stats-bar">
+        <div class="stat-box">
+          <div class="stat-num">${total}</div>
+          <div class="stat-lbl">Pacotes ativos</div>
+          <div class="stat-note">Portfólio pronto para consulta.</div>
+        </div>
+        <div class="stat-box stat-positive">
+          <div class="stat-num">${direct}</div>
+          <div class="stat-lbl">Voo direto</div>
+          <div class="stat-note">Opções com menor fricção comercial.</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">${total ? brlFloor(avg) : 'R$ 0'}</div>
+          <div class="stat-lbl">Ticket médio</div>
+          <div class="stat-note">Leitura rápida do posicionamento.</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">${brlFloor(totalValor)}</div>
+          <div class="stat-lbl">Volume total</div>
+          <div class="stat-note">Soma dos valores cadastrados.</div>
+        </div>
+      </div>
+
+      <div class="search-card">
+        <div>
+          <div class="section-title-lg">Busca de pacotes</div>
+          <div class="section-note">${total ? 'Filtre por referência, destino, origem ou fornecedor.' : 'Crie o primeiro pacote para iniciar a carteira.'}</div>
+        </div>
+        <div id="search-wrap">
+          <div class="search-shell">
+            <input class="search-input" id="pkg-search" type="search" placeholder="REF, destino, origem ou fornecedor..." autocomplete="off" autocorrect="off" spellcheck="false">
+          </div>
+        </div>
+      </div>
+
+      <div id="pkg-list"></div>
     </div>
-    <button class="btn btn-gold" style="margin-bottom:16px;width:100%;font-size:15px" onclick="goNewPkg()">+ Novo Pacote</button>
-    <div id="pkg-list"></div>
   `;
 }
 function goNewPkg() {
@@ -3048,7 +4390,8 @@ function renderPkgListItems() {
   const filtered = q ? pkgs.filter(p =>
     (p.ref||'').toLowerCase().includes(q) ||
     (p.destino||'').toLowerCase().includes(q) ||
-    (p.origem||'').toLowerCase().includes(q)
+    (p.origin||p.origem||'').toLowerCase().includes(q) ||
+    (p.fornecedor||'').toLowerCase().includes(q)
   ) : pkgs;
   const el = document.getElementById('pkg-list'); if (!el) return;
   if (filtered.length === 0) {
@@ -3056,19 +4399,31 @@ function renderPkgListItems() {
     return;
   }
   const sorted = [...filtered].sort((a,b) => (b.ts||0)-(a.ts||0));
-  el.innerHTML = sorted.map(p => `
-    <div class="alert-card" onclick="openPkgDetail('${p.id}')">
+  el.innerHTML = sorted.map(p => {
+    const np = p.numPessoas || 1;
+    const origem = p.origin || p.origem || '';
+    return `<div class="alert-card" onclick="openPkgDetail('${p.id}')">
       <div class="alert-card-body">
-        <div class="alert-ref">REF: ${p.ref}${p.fornecedor?` · ${p.fornecedor}`:''}${p.ts?`<span class="alert-ts">${formatTs(p.ts)}</span>`:''}</div>
-        <div class="alert-route">${p.destino||'?'} ${p.origin?`← ${p.origin}`:''}</div>
-        <div class="alert-airline">${p.noites||0} noites · ${p.numPessoas||1} pessoa${(p.numPessoas||1)>1?'s':''}</div>
+        <div class="alert-ref">REF ${p.ref}${p.ts?`<span class="alert-ts">${formatTs(p.ts)}</span>`:''}</div>
+        <div class="alert-route">${p.destino || '?'}${origem ? ` &middot; saída ${origem}` : ''}</div>
+        <div class="alert-airline">${p.noites || 0} noites · ${np === 2 ? 'casal' : '1 pessoa'}${p.fornecedor ? ` · ${p.fornecedor}` : ''}</div>
+        <div class="alert-meta-row">
+          <span class="badge badge-intl">PKG</span>
+          <span class="mini-chip default">${p.direct ? 'Voo direto' : 'Rota com conexão'}</span>
+          <span class="mini-chip default">${p.noites || 0} noite${(p.noites || 0) === 1 ? '' : 's'}</span>
+          ${p.pixDesconto > 0 ? `<span class="mini-chip positive">Pix ${brl(p.pixDesconto)}</span>` : ''}
+        </div>
       </div>
+
       <div class="alert-card-right">
-        <div class="alert-pix">${brlFloor(p.valor||0)}</div>
-        <span class="badge badge-intl">PKG</span>
+        <div>
+          <div class="alert-pix">${brlFloor(p.valor || 0)}</div>
+          <div class="section-note">${np === 2 ? 'por casal' : 'por pessoa'}</div>
+        </div>
+        <span class="mini-chip ${p.boleto ? 'warn' : 'default'}">${p.boleto ? 'Boleto disponível' : 'Cartão / Pix'}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 // ─────────────────────────────────────────────
@@ -3088,9 +4443,11 @@ function renderPackageForm() {
     return `
       <div style="border-bottom:1px solid var(--border);padding:12px 0">
         <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="togglePkgItem('${it.key}')">
-          <div class="toggle-wrap" style="pointer-events:none">
-            <input type="checkbox" id="pkg-chk-${it.key}" ${item.active?'checked':''}>
-            <label class="toggle-label"></label>
+          <div class="switch-wrap" style="pointer-events:none;padding:8px 10px">
+            <label class="switch">
+              <input type="checkbox" id="pkg-chk-${it.key}" ${item.active?'checked':''}>
+              <span class="slider"></span>
+            </label>
           </div>
           <span class="form-label" style="margin:0;color:${item.active?'var(--gold)':'var(--gray-2)'}" id="pkg-lbl-${it.key}">${it.name}</span>
         </div>
@@ -3104,118 +4461,159 @@ function renderPackageForm() {
   }).join('');
 
   return `
-    <button id="back-btn" onclick="backFromPkgNew()">&#8592; Voltar</button>
-    <div class="page-title">${pkgEditingId?'Editar Pacote':'Novo Pacote'}</div>
+    <div class="page-shell">
+      <button id="back-btn" onclick="backFromPkgNew()">&#8592; Voltar</button>
 
-    <div class="section-card">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">ORIGEM</label>
-          <input class="form-input" id="pkg-origin" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
-        </div>
-        <div class="form-group">
-          <label class="form-label">DESTINO (AEROPORTO)</label>
-          <input class="form-input" id="pkg-dest" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
-        </div>
+      <div class="page-hero">
+        <section class="hero-panel hero-panel-main">
+          <div class="hero-kicker">Montagem de produto</div>
+          <div class="page-title">${pkgEditingId?'Editar pacote':'Novo pacote'}</div>
+          <div class="page-subtitle">Estrutura de produto organizada em blocos claros para preservar contexto comercial, composição e margem sem parecer um formulário cru.</div>
+        </section>
+
+        <aside class="hero-panel hero-panel-side">
+          <div>
+            <div class="hero-kicker">Resumo rápido</div>
+            <div class="section-title-lg">${pkgNumPessoas===2 ? 'Oferta para casal' : 'Oferta individual'}</div>
+            <div class="section-note">A lateral segura o contexto e as ações enquanto o cadastro principal fica limpo.</div>
+          </div>
+          <div class="hero-badge-row">
+            <span class="mini-chip default"><strong>${pkgNumPessoas===2 ? 'Casal' : '1 pessoa'}</strong> público</span>
+            <span class="mini-chip ${pkgSemJuros ? 'positive' : 'default'}"><strong>${pkgSemJuros ? `${pkgSemJurosParc}x` : 'off'}</strong> sem juros</span>
+            <span class="mini-chip ${pkgBoleto ? 'warn' : 'default'}"><strong>${pkgBoleto ? 'on' : 'off'}</strong> boleto</span>
+          </div>
+        </aside>
       </div>
-      <div class="form-label" style="margin-top:12px">NOME DO PACOTE / DESTINO</div>
-      <input class="form-input" id="pkg-destino" type="text" placeholder="Ex: Búzios (e Arredores), Cancún, Orlando..." style="margin-bottom:12px">
-      <div class="form-row" style="align-items:center">
-        <div class="form-group" style="flex:1;padding-top:22px">
-          <div class="switch-wrap">
-            <label class="switch">
-              <input type="checkbox" id="pkg-direct">
-              <span class="slider"></span>
-            </label>
-            <span class="switch-label">Voo Direto</span>
+
+      <div class="workspace-grid">
+        <div class="workspace-main">
+          <div class="section-card">
+            <div class="section-eyebrow">Identificação</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Origem</label>
+                <input class="form-input" id="pkg-origin" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Destino (aeroporto)</label>
+                <input class="form-input" id="pkg-dest" type="text" placeholder="Cidade ou IATA..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
+              </div>
+            </div>
+            <div class="form-section">
+              <div class="form-label">Nome do pacote / destino</div>
+              <input class="form-input" id="pkg-destino" type="text" placeholder="Ex: Búzios (e Arredores), Cancún, Orlando...">
+            </div>
+            <div class="form-section">
+              <div class="switch-wrap">
+                <label class="switch">
+                  <input type="checkbox" id="pkg-direct">
+                  <span class="slider"></span>
+                </label>
+                <span class="switch-label">Voo Direto</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Período</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <div class="form-label">Data de ida</div>
+                <input class="form-input" id="pkg-dout" type="date" onchange="updatePkgNoites()">
+              </div>
+              <div>
+                <div class="form-label">Data de volta</div>
+                <input class="form-input" id="pkg-din" type="date" onchange="updatePkgNoites()">
+              </div>
+            </div>
+            <div id="pkg-noites-display" style="text-align:center;font-size:13px;color:var(--gold);font-weight:700;min-height:22px;margin-top:12px"></div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Itens inclusos</div>
+            ${itemsHtml}
+          </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Precificação</div>
+            <div class="form-label">Para quantas pessoas?</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+              <button class="airline-btn pkg-np-btn${pkgNumPessoas===1?' selected':''}" data-np="1" onclick="selectPkgNP(1)">1 Pessoa</button>
+              <button class="airline-btn pkg-np-btn${pkgNumPessoas===2?' selected':''}" data-np="2" onclick="selectPkgNP(2)">Casal (2)</button>
+            </div>
+            <div class="form-label">Valor do pacote (R$)</div>
+            <input class="form-input" id="pkg-valor" type="text" inputmode="decimal" placeholder="0,00" oninput="updatePkgLucro()">
+            <div class="form-label" style="color:var(--gray-2);margin-top:10px">Valor no Pix (opcional)</div>
+            <input class="form-input" id="pkg-pix" type="text" inputmode="decimal" placeholder="deixe vazio se for o mesmo" style="opacity:0.7">
+          </div>
+
+          <div class="section-card" style="border:1.5px dashed var(--border)">
+            <div class="section-eyebrow" style="color:var(--gray-2)">Custo interno</div>
+            <div class="form-label">Custo do pacote (R$)</div>
+            <input class="form-input" id="pkg-custo" type="text" inputmode="decimal" placeholder="0,00" oninput="updatePkgLucro()">
+            <div id="pkg-lucro-display" style="margin-top:10px;font-size:13px;font-weight:700;min-height:20px"></div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Pagamento</div>
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;flex-wrap:wrap">
+              <div class="switch-wrap">
+                <label class="switch">
+                  <input type="checkbox" id="pkg-semjuros" ${pkgSemJuros?'checked':''}
+                    onchange="pkgSemJuros=this.checked;document.getElementById('pkg-parc-lbl').textContent=this.checked?'Nº PARCELAS SEM JUROS':'Nº PARCELAS NO CARTÃO'">
+                  <span class="slider"></span>
+                </label>
+                <span class="switch-label">Sem Juros</span>
+              </div>
+              <div class="switch-wrap">
+                <label class="switch">
+                  <input type="checkbox" id="pkg-boleto" ${pkgBoleto?'checked':''}
+                    onchange="pkgBoleto=this.checked">
+                  <span class="slider"></span>
+                </label>
+                <span class="switch-label">Boleto</span>
+              </div>
+            </div>
+            <div class="form-label" id="pkg-parc-lbl">${pkgSemJuros?'Nº PARCELAS SEM JUROS':'Nº PARCELAS NO CARTÃO'}</div>
+            <input class="form-input" id="pkg-semjurosparc" type="text" inputmode="numeric"
+              placeholder="12" value="${pkgSemJurosParc}"
+              oninput="pkgSemJurosParc=parseInt(this.value)||12">
+          </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Fornecedor</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              ${['AZUL','HotelDO','Cativa','Frt Operadora','Patria','OUTRO'].map(f =>
+                `<button class="airline-btn pkg-forn-btn${pkgFornecedor===f?' selected':''}" data-forn="${f}" onclick="selectPkgFornecedor('${f}')">${f}</button>`
+              ).join('')}
+            </div>
+            <div class="form-section">
+              <div class="form-label">Link do fornecedor (opcional)</div>
+              <input class="form-input" id="pkg-link" type="url" inputmode="url" placeholder="https://">
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="section-card">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <div class="form-label">DATA DE IDA</div>
-          <input class="form-input" id="pkg-dout" type="date" onchange="updatePkgNoites()">
-        </div>
-        <div>
-          <div class="form-label">DATA DE VOLTA</div>
-          <input class="form-input" id="pkg-din" type="date" onchange="updatePkgNoites()">
-        </div>
-      </div>
-      <div id="pkg-noites-display" style="text-align:center;font-size:13px;color:var(--gold);font-weight:700;min-height:22px;margin-top:10px"></div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">ITENS INCLUSOS</div>
-      ${itemsHtml}
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">PRECIFICAÇÃO</div>
-      <div class="form-label">PARA QUANTAS PESSOAS?</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-        <button class="airline-btn pkg-np-btn${pkgNumPessoas===1?' selected':''}" data-np="1" onclick="selectPkgNP(1)">1 Pessoa</button>
-        <button class="airline-btn pkg-np-btn${pkgNumPessoas===2?' selected':''}" data-np="2" onclick="selectPkgNP(2)">Casal (2)</button>
-      </div>
-      <div class="form-label">VALOR DO PACOTE (R$)</div>
-      <input class="form-input" id="pkg-valor" type="text" inputmode="decimal" placeholder="0,00" oninput="updatePkgLucro()">
-      <div class="form-label" style="color:var(--gray-2);margin-top:10px">VALOR NO PIX (OPCIONAL — se menor que o cartão)</div>
-      <input class="form-input" id="pkg-pix" type="text" inputmode="decimal" placeholder="deixe vazio se for o mesmo" style="opacity:0.7">
-    </div>
-
-    <div class="section-card" style="border:1.5px dashed var(--border)">
-      <div class="section-title" style="color:var(--gray-2)">CUSTO INTERNO (nao aparece na copy)</div>
-      <div class="form-label">CUSTO DO PACOTE (R$)</div>
-      <input class="form-input" id="pkg-custo" type="text" inputmode="decimal" placeholder="0,00" oninput="updatePkgLucro()">
-      <div id="pkg-lucro-display" style="margin-top:10px;font-size:13px;font-weight:700;min-height:20px"></div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">PAGAMENTO</div>
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="toggle-wrap">
-            <input type="checkbox" id="pkg-semjuros" ${pkgSemJuros?'checked':''}
-              onchange="pkgSemJuros=this.checked;document.getElementById('pkg-parc-lbl').textContent=this.checked?'Nº PARCELAS SEM JUROS':'Nº PARCELAS NO CARTÃO'">
-            <label class="toggle-label" for="pkg-semjuros"></label>
+        <aside class="workspace-side">
+          <div class="section-card sticky-panel">
+            <div class="section-eyebrow">Checklist</div>
+            <div class="support-text">Confirme datas, margem interna, forma de pagamento e fornecedor antes de salvar o pacote.</div>
+            <div class="support-list">
+              <span class="mini-chip default">${pkgNumPessoas===2 ? 'Casal' : '1 pessoa'}</span>
+              <span class="mini-chip ${pkgSemJuros ? 'positive' : 'default'}">${pkgSemJuros ? `${pkgSemJurosParc}x sem juros` : 'Parcelamento padrão'}</span>
+              <span class="mini-chip ${pkgBoleto ? 'warn' : 'default'}">${pkgBoleto ? 'Boleto ativo' : 'Sem boleto'}</span>
+            </div>
           </div>
-          <span>Sem Juros</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="toggle-wrap">
-            <input type="checkbox" id="pkg-boleto" ${pkgBoleto?'checked':''}
-              onchange="pkgBoleto=this.checked">
-            <label class="toggle-label" for="pkg-boleto"></label>
+
+          <div class="form-actions">
+            <button class="btn btn-gold" onclick="savePkg()">
+              ${pkgEditingId?'Atualizar pacote':'Salvar pacote'}
+            </button>
+            ${pkgEditingId ? `<button class="btn btn-red" onclick="confirmDeletePkg('${pkgEditingId}')">Excluir pacote</button>` : ''}
           </div>
-          <span>Boleto</span>
-        </div>
-      </div>
-      <div class="form-label" id="pkg-parc-lbl">${pkgSemJuros?'Nº PARCELAS SEM JUROS':'Nº PARCELAS NO CARTÃO'}</div>
-      <input class="form-input" id="pkg-semjurosparc" type="text" inputmode="numeric"
-        placeholder="12" value="${pkgSemJurosParc}"
-        oninput="pkgSemJurosParc=parseInt(this.value)||12">
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">FORNECEDOR</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-        ${['AZUL','HotelDO','Cativa','Frt Operadora','Patria','OUTRO'].map(f =>
-          `<button class="airline-btn pkg-forn-btn${pkgFornecedor===f?' selected':''}" data-forn="${f}" onclick="selectPkgFornecedor('${f}')">${f}</button>`
-        ).join('')}
+        </aside>
       </div>
     </div>
-
-    <div class="section-card">
-      <div class="form-label">LINK DO FORNECEDOR (OPCIONAL)</div>
-      <input class="form-input" id="pkg-link" type="url" inputmode="url" placeholder="https://">
-    </div>
-
-    <button class="btn btn-gold" onclick="savePkg()" style="width:100%;margin-top:8px;font-size:16px">
-      ${pkgEditingId?'ATUALIZAR PACOTE':'SALVAR PACOTE'}
-    </button>
-    ${pkgEditingId ? `<button class="btn btn-red" onclick="confirmDeletePkg('${pkgEditingId}')" style="width:100%;margin-top:8px">Excluir pacote</button>` : ''}
   `;
 }
 function updatePkgNoites() {
@@ -3241,7 +4639,7 @@ function updatePkgLucro() {
   if (!custo || !valor) { el.textContent = ''; return; }
   const lucro = valor - custo;
   const pct   = custo > 0 ? ((lucro / custo) * 100).toFixed(1) : '—';
-  el.style.color = lucro >= 0 ? 'var(--gold)' : '#e55';
+  el.style.color = lucro >= 0 ? 'var(--green)' : 'var(--red)';
   el.textContent = `Lucro: ${brl(lucro)} (${pct}%)`;
 }
 function selectPkgFornecedor(val) {
@@ -3390,7 +4788,7 @@ function renderPkgDetail(pkg) {
   const link    = sanitizeLink(pkg.link||'');
   const linkBtn = link
     ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="btn-link-full">ABRIR FORNECEDOR</a>`
-    : `<button class="btn btn-ghost" style="margin-bottom:12px;cursor:not-allowed;opacity:0.5">SEM LINK CADASTRADO</button>`;
+    : `<button class="btn btn-ghost" style="cursor:not-allowed;opacity:0.5">SEM LINK CADASTRADO</button>`;
 
   const waCopy = buildPackageWhatsApp(pkg);
   window._pkgCopy = { wa: waCopy };
@@ -3416,64 +4814,98 @@ function renderPkgDetail(pkg) {
     cartaoDesc = `${nParc}x de ${brl(pkg.valor*(1+fee/100)/nParc)}`;
   }
 
+  const lucro = pkg.custo ? pkg.valor - pkg.custo : 0;
+  const lucroPct = pkg.custo > 0 ? ((lucro / pkg.custo) * 100).toFixed(1) : '—';
+
   return `
-    <button id="back-btn" onclick="pkgCurrentDetail=null;render()">&#8592; Voltar</button>
+    <div class="page-shell">
+      <button id="back-btn" onclick="pkgCurrentDetail=null;render()">&#8592; Voltar</button>
 
-    <div class="detail-header">
-      <div class="detail-header-top">
-        <div>
-          <div class="detail-ref">REF: ${pkg.ref}${pkg.fornecedor ? ` · ${pkg.fornecedor}` : ''}</div>
-          <div class="detail-route">${pkg.destino}${pkg.direct?' | Voo Direto':''}</div>
-          <div class="detail-airline">${pkg.noites||0} noites · ${pkg.origin||'—'} → ${pkg.dest||'—'}</div>
-          ${pkg.ts ? `<div class="detail-ts">Gerado em ${formatTs(pkg.ts)}</div>` : ''}
+      <div class="detail-layout">
+        <div class="detail-main">
+          <div class="detail-header">
+            <div class="detail-header-top">
+              <div>
+                <div class="detail-ref">REF: ${pkg.ref}${pkg.fornecedor ? ` · ${pkg.fornecedor}` : ''}</div>
+                <div class="detail-route">${pkg.destino}${pkg.direct ? ' · Voo Direto' : ''}</div>
+                <div class="detail-airline">${pkg.noites||0} noites · ${pkg.origin||'—'} &rarr; ${pkg.dest||'—'}</div>
+                ${pkg.ts ? `<div class="detail-ts">Gerado em ${formatTs(pkg.ts)}</div>` : ''}
+              </div>
+              <button class="detail-edit-btn" onclick="editPkg('${pkg.id}')">Editar</button>
+            </div>
+
+            <div class="detail-chip-row">
+              <span class="badge badge-intl">PKG</span>
+              ${pkg.direct ? '<span class="detail-chip positive">Voo direto</span>' : ''}
+              ${pkg.boleto ? '<span class="detail-chip warn">Boleto disponível</span>' : ''}
+              <span class="detail-chip default">${(pkg.numPessoas||1)===2 ? 'Casal' : '1 pessoa'}</span>
+            </div>
+
+            <div class="detail-pix">${brl(pkg.valor)}<span style="font-size:14px;font-weight:500;color:var(--gray-1)"> ${(pkg.numPessoas||1)===2?'/ casal':'/ pessoa'}</span></div>
+            <div class="detail-inst">${cartaoDesc}</div>
+
+            <div class="detail-highlight-grid">
+              <div class="detail-metric">
+                <span class="detail-metric-label">Preço principal</span>
+                <span class="detail-metric-value">${brl(pkg.valor)}</span>
+              </div>
+              <div class="detail-metric ${pkg.pixDesconto > 0 ? 'positive' : 'warn'}">
+                <span class="detail-metric-label">Pix</span>
+                <span class="detail-metric-value">${brl(pixVal)}</span>
+              </div>
+              <div class="detail-metric ${pkg.custo ? (lucro >= 0 ? 'positive' : 'risk') : 'warn'}">
+                <span class="detail-metric-label">${pkg.custo ? 'Margem interna' : 'Sem custo'}</span>
+                <span class="detail-metric-value">${pkg.custo ? `${brl(lucro)} (${lucroPct}%)` : '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="financial-box">
+            <div class="fin-title">Itens inclusos</div>
+            ${itemsHtml || '<div style="color:var(--gray-2);font-size:13px">Nenhum item cadastrado</div>'}
+          </div>
+
+          <div class="financial-box">
+            <div class="fin-title">Pagamento</div>
+            <div class="fin-row"><span style="color:var(--gray-1)">Pix</span><span style="color:var(--gold);font-weight:700">${brl(pixVal)}</span></div>
+            <div class="fin-row"><span style="color:var(--gray-1)">Cartão</span><span>${cartaoDesc}</span></div>
+            ${pkg.boleto ? `<div class="fin-row"><span style="color:var(--gray-1)">Boleto</span><span>1+9 de ${brl(pkg.valor/10)}</span></div>` : ''}
+          </div>
+
+          ${pkg.custo ? `
+          <div class="financial-box" style="border:1.5px dashed var(--border)">
+            <div class="fin-title" style="color:var(--gray-2)">Interno</div>
+            <div class="fin-row"><span style="color:var(--gray-2)">Custo</span><span style="color:var(--gray-2)">${brl(pkg.custo)}</span></div>
+            <div class="fin-row"><span style="color:var(--gray-2)">Lucro</span><span style="color:${lucro>=0?'var(--green)':'var(--red)'};font-weight:700">${brl(lucro)} (${lucroPct}%)</span></div>
+          </div>` : ''}
+
+          ${(pkg.dOut||pkg.dIn) ? `
+          <div class="financial-box">
+            <div class="fin-title">Período</div>
+            <div class="fin-row"><span style="color:var(--gray-1)">Ida</span><span>${pkg.dOut||'—'}</span></div>
+            <div class="fin-row"><span style="color:var(--gray-1)">Volta</span><span>${pkg.dIn||'—'}</span></div>
+          </div>` : ''}
         </div>
-        <button class="detail-edit-btn" onclick="editPkg('${pkg.id}')">Editar</button>
+
+        <aside class="detail-side">
+          <div class="section-card sticky-panel">
+            <div class="section-eyebrow">Ações rápidas</div>
+            <div class="support-text">Use o link do fornecedor e a copy pronta para acelerar distribuição com o mesmo padrão do restante do sistema.</div>
+            ${linkBtn}
+          </div>
+
+          <div class="copy-block">
+            <div class="copy-block-top">
+              <div class="copy-block-title">WhatsApp</div>
+              <button class="btn-sm btn-gold" onclick="copyText(window._pkgCopy.wa, this)">Copiar</button>
+            </div>
+            <div class="copy-text">${escHtml(waCopy)}</div>
+          </div>
+
+          <button class="btn btn-red" onclick="confirmDeletePkg('${pkg.id}')">Excluir pacote</button>
+        </aside>
       </div>
-      <div class="detail-pix">${brl(pkg.valor)}<span style="font-size:13px;font-weight:400;color:var(--gray-1)"> ${(pkg.numPessoas||1)===2?'/ casal':'/ pessoa'}</span></div>
-      <div class="detail-inst">${cartaoDesc}</div>
     </div>
-
-    <div class="financial-box">
-      <div class="fin-title">ITENS INCLUSOS</div>
-      ${itemsHtml || '<div style="color:var(--gray-2);font-size:13px">Nenhum item cadastrado</div>'}
-    </div>
-
-    <div class="financial-box">
-      <div class="fin-title">PAGAMENTO</div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Pix</span><span style="color:var(--gold);font-weight:700">${brl(pixVal)}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Cartão</span><span>${cartaoDesc}</span></div>
-      ${pkg.boleto ? `<div class="fin-row"><span style="color:var(--gray-1)">Boleto</span><span>1+9 de ${brl(pkg.valor/10)}</span></div>` : ''}
-    </div>
-
-    ${pkg.custo ? (() => {
-      const lucro = pkg.valor - pkg.custo;
-      const pct   = pkg.custo > 0 ? ((lucro / pkg.custo) * 100).toFixed(1) : '—';
-      return `
-    <div class="financial-box" style="border:1.5px dashed var(--border)">
-      <div class="fin-title" style="color:var(--gray-2)">INTERNO</div>
-      <div class="fin-row"><span style="color:var(--gray-2)">Custo</span><span style="color:var(--gray-2)">${brl(pkg.custo)}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-2)">Lucro</span><span style="color:${lucro>=0?'var(--gold)':'#e55'};font-weight:700">${brl(lucro)} (${pct}%)</span></div>
-    </div>`;
-    })() : ''}
-
-    ${(pkg.dOut||pkg.dIn) ? `
-    <div class="financial-box">
-      <div class="fin-title">PERÍODO</div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Ida</span><span>${pkg.dOut||'—'}</span></div>
-      <div class="fin-row"><span style="color:var(--gray-1)">Volta</span><span>${pkg.dIn||'—'}</span></div>
-    </div>` : ''}
-
-    ${linkBtn}
-
-    <div class="copy-block">
-      <div class="copy-block-top">
-        <div class="copy-block-title">WHATSAPP</div>
-        <button class="btn-sm btn-gold" onclick="copyText(window._pkgCopy.wa, this)">Copiar</button>
-      </div>
-      <div class="copy-text">${escHtml(waCopy)}</div>
-    </div>
-
-    <button class="btn btn-red" onclick="confirmDeletePkg('${pkg.id}')">Excluir pacote</button>
   `;
 }
 function editPkg(id) {
