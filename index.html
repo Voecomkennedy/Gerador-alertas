@@ -499,6 +499,72 @@
     box-shadow: inset 0 0 0 1px var(--gold-line);
   }
 
+  /* ── REGION GRID ── */
+  #regiao-grid, #pkg-regiao-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .regiao-btn {
+    flex: 1 1 auto;
+    min-width: 80px;
+    background: var(--s3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 8px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--gray-1);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    min-height: 40px;
+    letter-spacing: 0.6px;
+    font-family: inherit;
+    text-transform: uppercase;
+  }
+  .regiao-btn:hover { border-color: var(--gold-line); color: var(--white); }
+  .regiao-btn.selected {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: var(--gold-dim);
+    box-shadow: inset 0 0 0 1px var(--gold-line);
+  }
+  /* Filter pills na lista */
+  .regiao-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .regiao-filter-pill {
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--s3);
+    border: 1px solid var(--border);
+    color: var(--gray-1);
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .regiao-filter-pill:hover { border-color: var(--gold-line); color: var(--white); }
+  .regiao-filter-pill.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: var(--gold-dim);
+  }
+  /* Chip de agendamento no card */
+  .mini-chip.sched {
+    color: #a78bfa;
+    border-color: rgba(167,139,250,0.28);
+    background: rgba(167,139,250,0.10);
+  }
+
   /* ── TOGGLE PILL ── */
   .toggle-wrap {
     display: flex;
@@ -2835,6 +2901,9 @@ let fPayment      = 'milhas'; // 'milhas' | 'avista'
 let fSemJuros     = false;
 let fSemJurosParc = 2;
 let fBoleto       = false;
+let fRegiao       = '';
+let fSchedTime    = '';
+let filterRegiao  = '';
 
 // Copy texts — evita perda de \n em data-attributes do innerHTML
 window._copyTexts = { wa: '', html: '' };
@@ -3042,8 +3111,12 @@ function renderList() {
         </div>
         <div id="search-wrap">
           <div class="search-shell">
-            <input class="search-input" id="search-input" type="search" placeholder="Buscar por REF, rota ou companhia..." autocomplete="off" autocorrect="off" spellcheck="false">
+            <input class="search-input" id="search-input" type="search" placeholder="Buscar por REF, rota, regiao ou companhia..." autocomplete="off" autocorrect="off" spellcheck="false">
           </div>
+        </div>
+        <div class="regiao-filter-bar">
+          <button class="regiao-filter-pill${filterRegiao===''?' active':''}" data-regiao="" onclick="setFilterRegiao('')">Todos</button>
+          ${REGIOES.map(r=>`<button class="regiao-filter-pill${filterRegiao===r?' active':''}" data-regiao="${r}" onclick="setFilterRegiao('${r}')">${r}</button>`).join('')}
         </div>
       </div>
 
@@ -3066,13 +3139,17 @@ function renderList() {
 function renderAlertList() {
   const alerts = loadAlerts();
   const q = searchQuery.toLowerCase().trim();
-  const filtered = q ? alerts.filter(a => {
+  let filtered = q ? alerts.filter(a => {
     return (a.ref || '').toLowerCase().includes(q)
       || (a.origin || '').toLowerCase().includes(q)
       || (a.dest || '').toLowerCase().includes(q)
       || (a.airline || '').toLowerCase().includes(q)
-      || (a.airname || '').toLowerCase().includes(q);
+      || (a.airname || '').toLowerCase().includes(q)
+      || (a.regiao || '').toLowerCase().includes(q);
   }) : alerts;
+  if (filterRegiao) {
+    filtered = filtered.filter(a => (a.regiao || '') === filterRegiao);
+  }
 
   const el = document.getElementById('alert-list');
   if (!el) return;
@@ -3103,6 +3180,9 @@ function renderAlertList() {
     const actionChip = snapshot.economy > 0
       ? `<span class="mini-chip positive">Economia ${brl(snapshot.economy)}</span>`
       : '';
+    const schedChip = (a.schedTime || a.regiao)
+      ? `<span class="mini-chip sched">${a.schedTime ? a.schedTime : ''}${a.schedTime && a.regiao ? ' - ' : ''}${a.regiao || ''}</span>`
+      : '';
 
     return `<div class="alert-card" onclick="openDetail('${a.id}')">
       <div class="alert-card-body">
@@ -3115,6 +3195,7 @@ function renderAlertList() {
           ${a.direct ? `<span class="mini-chip positive">Voo direto</span>` : ''}
           <span class="mini-chip ${snapshot.tone}">${snapshot.label}</span>
           ${actionChip}
+          ${schedChip}
         </div>
       </div>
 
@@ -3553,6 +3634,24 @@ function renderForm() {
               </div>
             </div>
           </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Agendamento de grupo</div>
+            <div class="form-section">
+              <div class="form-label">Regiao postada</div>
+              <div id="regiao-grid">
+                ${REGIOES.map(r =>
+                  `<button class="regiao-btn f-regiao-btn${fRegiao===r?' selected':''}" data-regiao="${r}" onclick="selectRegiao('${r}','f')">${r}</button>`
+                ).join('')}
+              </div>
+            </div>
+            <div class="form-section">
+              <div class="form-group">
+                <label class="form-label">Horario agendado (opcional)</label>
+                <input class="form-input" id="f-schedtime" type="time" value="${fSchedTime}" style="max-width:160px">
+              </div>
+            </div>
+          </div>
         </div>
 
         <aside class="workspace-side">
@@ -3615,7 +3714,22 @@ function initForm() {
       setVal('f-link',   a.link);
       const dc = document.getElementById('f-direct');
       if (dc) dc.checked = !!a.direct;
+      fRegiao    = a.regiao    || '';
+      fSchedTime = a.schedTime || '';
+      if (fRegiao) selectRegiao(fRegiao, 'f');
+      const stEl = document.getElementById('f-schedtime');
+      if (stEl && fSchedTime) stEl.value = fSchedTime;
     }
+  }
+  // Wire auto-detect de regiao pela origem
+  const originEl = document.getElementById('f-origin');
+  if (originEl) {
+    originEl.addEventListener('change', () => {
+      if (!fRegiao) autoDetectRegiao(originEl.value, 'f');
+    });
+    originEl.addEventListener('blur', () => {
+      if (!fRegiao) autoDetectRegiao(originEl.value, 'f');
+    });
   }
   renderCustomAirlineFields();
   updateCalc();
@@ -3870,6 +3984,65 @@ function updateCalc() {
   `;
 }
 
+// ─────────────────────────────────────────────
+// REGIOES — mapa e deteccao automatica
+// ─────────────────────────────────────────────
+const IATA_REGIAO = {
+  GRU:'Sudeste',CGH:'Sudeste',VCP:'Sudeste',SDU:'Sudeste',GIG:'Sudeste',
+  CNF:'Sudeste',PLU:'Sudeste',VIX:'Sudeste',UDI:'Sudeste',GYN:'Centro-Oeste',
+  POA:'Sul',CWB:'Sul',FLN:'Sul',IGU:'Sul',LNS:'Sul',
+  FOR:'Nordeste',SSA:'Nordeste',REC:'Nordeste',NAT:'Nordeste',
+  MCZ:'Nordeste',JPA:'Nordeste',THE:'Nordeste',SLZ:'Nordeste',IMP:'Nordeste',
+  MAO:'Norte',BEL:'Norte',STM:'Norte',PMW:'Norte',RBR:'Norte',OPS:'Norte',
+  BSB:'Centro-Oeste',CGO:'Centro-Oeste',CGB:'Centro-Oeste',CMG:'Centro-Oeste',
+};
+const CITY_REGIAO_KW = [
+  ['sao paulo','Sudeste'],['rio de janeiro','Sudeste'],['belo horizonte','Sudeste'],
+  ['vitoria','Sudeste'],['campinas','Sudeste'],['guarulhos','Sudeste'],
+  ['porto alegre','Sul'],['curitiba','Sul'],['florianopolis','Sul'],
+  ['foz do iguacu','Sul'],['joinville','Sul'],['londrina','Sul'],
+  ['fortaleza','Nordeste'],['salvador','Nordeste'],['recife','Nordeste'],
+  ['natal','Nordeste'],['maceio','Nordeste'],['joao pessoa','Nordeste'],
+  ['teresina','Nordeste'],['sao luis','Nordeste'],['feira de santana','Nordeste'],
+  ['manaus','Norte'],['belem','Norte'],['porto velho','Norte'],['rio branco','Norte'],
+  ['santarem','Norte'],['macapa','Norte'],['palmas','Norte'],
+  ['brasilia','Centro-Oeste'],['goiania','Centro-Oeste'],['cuiaba','Centro-Oeste'],
+  ['campo grande','Centro-Oeste'],['anapolis','Centro-Oeste'],
+];
+function detectRegiao(origin) {
+  if (!origin) return '';
+  const up = origin.toUpperCase().replace(/\s/g,'');
+  if (IATA_REGIAO[up]) return IATA_REGIAO[up];
+  const lo = origin.toLowerCase();
+  for (const [kw, reg] of CITY_REGIAO_KW) {
+    if (lo.includes(kw)) return reg;
+  }
+  return '';
+}
+const REGIOES = ['Norte','Nordeste','Centro-Oeste','Sudeste','Sul'];
+
+function selectRegiao(r, prefix) {
+  prefix = prefix || 'f';
+  if (prefix === 'f') fRegiao = r;
+  else pkgRegiao = r;
+  document.querySelectorAll(`.${prefix}-regiao-btn`).forEach(b => {
+    b.classList.toggle('selected', b.dataset.regiao === r);
+  });
+}
+
+function autoDetectRegiao(origin, prefix) {
+  const r = detectRegiao(origin);
+  if (r) selectRegiao(r, prefix);
+}
+
+function setFilterRegiao(r) {
+  filterRegiao = r;
+  document.querySelectorAll('.regiao-filter-pill').forEach(b => {
+    b.classList.toggle('active', b.dataset.regiao === r);
+  });
+  renderAlertList();
+}
+
 function saveForm() {
   const origin   = (document.getElementById('f-origin')?.value || '').trim();
   const dest     = (document.getElementById('f-dest')?.value   || '').trim();
@@ -3908,13 +4081,16 @@ function saveForm() {
   const flag    = (document.getElementById('f-flag')?.value || '').trim();
   const dOut    = (document.getElementById('f-dout')?.value || '').trim();
   const dIn     = (document.getElementById('f-din')?.value  || '').trim();
-  const link    = sanitizeLink(document.getElementById('f-link')?.value || '');
+  const link      = sanitizeLink(document.getElementById('f-link')?.value || '');
+  const regiao    = fRegiao;
+  const schedTime = (document.getElementById('f-schedtime')?.value || '').trim();
 
   const alerts = loadAlerts();
 
   const resetFormState = () => {
     fAirline = 'LATAM'; fType = 'intl'; mktManual = false;
     fPayment = 'milhas'; fSemJuros = false; fSemJurosParc = 2; fBoleto = false;
+    fRegiao = ''; fSchedTime = '';
   };
 
   if (editingId) {
@@ -3945,6 +4121,8 @@ function saveForm() {
         semJuros,
         semJurosParc,
         boleto,
+        regiao,
+        schedTime,
       };
       saveAlerts(alerts);
       showToast('Alerta atualizado');
@@ -3985,6 +4163,8 @@ function saveForm() {
       semJuros,
       semJurosParc,
       boleto,
+      regiao,
+      schedTime,
       ts:           Date.now(),
     };
     alerts.push(newAlert);
@@ -4005,6 +4185,8 @@ function cancelForm() {
   fSemJuros = false;
   fSemJurosParc = 2;
   fBoleto = false;
+  fRegiao = '';
+  fSchedTime = '';
   if (currentDetail) {
     render();
   } else {
@@ -4229,9 +4411,12 @@ let pkgSemJurosParc = 12;
 let pkgBoleto       = false;
 let pkgFornecedor   = '';
 let pkgNumPessoas   = 1;
+let pkgRegiao       = '';
+let pkgSchedTime    = '';
 let pkgItems = {};
 function resetPkgState() {
   pkgSemJuros = false; pkgSemJurosParc = 12; pkgBoleto = false; pkgFornecedor = ''; pkgNumPessoas = 1;
+  pkgRegiao = ''; pkgSchedTime = '';
   pkgItems = {
     aereo:    { active: true,  label: 'Aéreo' },
     hotel:    { active: true,  label: 'hotel' },
@@ -4592,6 +4777,24 @@ function renderPackageForm() {
               <input class="form-input" id="pkg-link" type="url" inputmode="url" placeholder="https://">
             </div>
           </div>
+
+          <div class="section-card">
+            <div class="section-eyebrow">Agendamento de grupo</div>
+            <div class="form-section">
+              <div class="form-label">Regiao postada</div>
+              <div id="pkg-regiao-grid">
+                ${REGIOES.map(r =>
+                  `<button class="regiao-btn pkg-regiao-btn${pkgRegiao===r?' selected':''}" data-regiao="${r}" onclick="selectRegiao('${r}','pkg')">${r}</button>`
+                ).join('')}
+              </div>
+            </div>
+            <div class="form-section">
+              <div class="form-group">
+                <label class="form-label">Horario agendado (opcional)</label>
+                <input class="form-input" id="pkg-schedtime" type="time" value="${pkgSchedTime}" style="max-width:160px">
+              </div>
+            </div>
+          </div>
         </div>
 
         <aside class="workspace-side">
@@ -4706,7 +4909,19 @@ function initPkgForm() {
         if (inp)  inp.value = pkgItems[k].label;
       });
       updatePkgNoites();
+      pkgRegiao    = p.regiao    || '';
+      pkgSchedTime = p.schedTime || '';
+      if (pkgRegiao) selectRegiao(pkgRegiao, 'pkg');
+      const pkgStEl = document.getElementById('pkg-schedtime');
+      if (pkgStEl && pkgSchedTime) pkgStEl.value = pkgSchedTime;
     }
+  }
+  // Wire auto-detect de regiao pela origem do pacote
+  const pkgOriginEl = document.getElementById('pkg-origin');
+  if (pkgOriginEl) {
+    pkgOriginEl.addEventListener('blur', () => {
+      if (!pkgRegiao) autoDetectRegiao(pkgOriginEl.value, 'pkg');
+    });
   }
 }
 function savePkg() {
@@ -4729,6 +4944,8 @@ function savePkg() {
   const semJurosParc = parseInt(document.getElementById('pkg-semjurosparc')?.value)||12;
   const boleto     = document.getElementById('pkg-boleto')?.checked || false;
   const link       = sanitizeLink(document.getElementById('pkg-link')?.value||'');
+  const regiao     = pkgRegiao;
+  const schedTime  = (document.getElementById('pkg-schedtime')?.value || '').trim();
   const ITEM_KEYS  = ['aereo','hotel','transfer','seguro','ingresso','extra'];
 
   const pkg = {
@@ -4739,6 +4956,7 @@ function savePkg() {
     destino, origin, dest, direct, dOut, dIn, noites,
     fornecedor: pkgFornecedor,
     valor, numPessoas, pixDesconto, custo, semJuros, semJurosParc, boleto, link,
+    regiao, schedTime,
     ts: Date.now(),
   };
   ITEM_KEYS.forEach(k => {
