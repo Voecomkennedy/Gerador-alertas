@@ -2756,7 +2756,12 @@ function buildWhatsApp(alert) {
   // Helper: retorna só o número sem o prefixo "R$" (inclusive espaço não-quebrável) para usar dentro do tachado
   const num = (x) => brl(x).replace(/^R\$\s*/u, '');
 
-  let txt = `*${alert.origin} → ${alert.dest}${alert.direct ? ' | Voo Direto' : ''}*`;
+  const extrasLine = [
+    alert.direct         ? 'Voo Direto'       : '',
+    alert.malaDespachada ? 'Mala Despachada'   : '',
+    alert.executiva      ? 'Executiva'         : '',
+  ].filter(Boolean).join(' | ');
+  let txt = `*${alert.origin} → ${alert.dest}${extrasLine ? ' | ' + extrasLine : ''}*`;
   txt += `\n\n*${aName}* | Preço final com taxas`;
   if (alert.paymentMode === 'avista' && alert.pixDesconto > 0) {
     // Modo Valor Direto COM valor no Pix — cartão fica com preço cheio
@@ -2783,6 +2788,7 @@ function buildWhatsApp(alert) {
   if (alert.boleto) {
     const boletoVal = brl(finalPix / 10);
     txt += `\n\n📄 *Boleto:* 1+9 de ${boletoVal} sem juros`;
+    txt += `\n_Boleto disponível apenas para embarques com mais de 40 dias da data de emissão._`;
   }
   const dOut = normDates(alert.dOut);
   if (dOut) {
@@ -2901,9 +2907,11 @@ let fPayment      = 'milhas'; // 'milhas' | 'avista'
 let fSemJuros     = false;
 let fSemJurosParc = 2;
 let fBoleto       = false;
-let fRegiao       = '';
-let fSchedTime    = '';
-let filterRegiao  = '';
+let fRegiao          = '';
+let fSchedTime       = '';
+let filterRegiao     = '';
+let fMalaDespachada  = false;
+let fExecutiva       = false;
 
 // Copy texts — evita perda de \n em data-attributes do innerHTML
 window._copyTexts = { wa: '', html: '' };
@@ -3504,12 +3512,28 @@ function renderForm() {
                   <input class="form-input" id="f-flag" type="text" placeholder="&#127482;&#127480;" style="text-align:center;font-size:22px" maxlength="4">
                 </div>
                 <div class="form-group" style="flex:1;padding-top:22px">
-                  <div class="switch-wrap">
-                    <label class="switch">
-                      <input type="checkbox" id="f-direct">
-                      <span class="slider"></span>
-                    </label>
-                    <span class="switch-label">Voo Direto</span>
+                  <div style="display:flex;flex-wrap:wrap;gap:14px">
+                    <div class="switch-wrap">
+                      <label class="switch">
+                        <input type="checkbox" id="f-direct">
+                        <span class="slider"></span>
+                      </label>
+                      <span class="switch-label">Voo Direto</span>
+                    </div>
+                    <div class="switch-wrap">
+                      <label class="switch">
+                        <input type="checkbox" id="f-mala" ${fMalaDespachada ? 'checked' : ''} onchange="fMalaDespachada=this.checked">
+                        <span class="slider"></span>
+                      </label>
+                      <span class="switch-label">Mala Despachada</span>
+                    </div>
+                    <div class="switch-wrap">
+                      <label class="switch">
+                        <input type="checkbox" id="f-executiva" ${fExecutiva ? 'checked' : ''} onchange="fExecutiva=this.checked">
+                        <span class="slider"></span>
+                      </label>
+                      <span class="switch-label">Executiva</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3714,6 +3738,12 @@ function initForm() {
       setVal('f-link',   a.link);
       const dc = document.getElementById('f-direct');
       if (dc) dc.checked = !!a.direct;
+      fMalaDespachada = !!a.malaDespachada;
+      fExecutiva      = !!a.executiva;
+      const malaEl = document.getElementById('f-mala');
+      if (malaEl) malaEl.checked = fMalaDespachada;
+      const execEl = document.getElementById('f-executiva');
+      if (execEl) execEl.checked = fExecutiva;
       fRegiao    = a.regiao    || '';
       fSchedTime = a.schedTime || '';
       if (fRegiao) selectRegiao(fRegiao, 'f');
@@ -3762,6 +3792,11 @@ function selectType(t) {
 function selectPayment(p) {
   fPayment = p;
   mktManual = false;
+  if (p === 'avista') {
+    fSemJuros     = true;
+    fSemJurosParc = 6;
+    fBoleto       = true;
+  }
   document.getElementById('main').innerHTML = renderForm();
   initForm();
 }
@@ -4077,7 +4112,9 @@ function saveForm() {
   }
 
   const airname = (document.getElementById('f-airname')?.value || '').trim();
-  const direct  = document.getElementById('f-direct')?.checked || false;
+  const direct          = document.getElementById('f-direct')?.checked || false;
+  const malaDespachada  = document.getElementById('f-mala')?.checked || false;
+  const executiva       = document.getElementById('f-executiva')?.checked || false;
   const flag    = (document.getElementById('f-flag')?.value || '').trim();
   const dOut    = (document.getElementById('f-dout')?.value || '').trim();
   const dIn     = (document.getElementById('f-din')?.value  || '').trim();
@@ -4091,6 +4128,7 @@ function saveForm() {
     fAirline = 'LATAM'; fType = 'intl'; mktManual = false;
     fPayment = 'milhas'; fSemJuros = false; fSemJurosParc = 2; fBoleto = false;
     fRegiao = ''; fSchedTime = '';
+    fMalaDespachada = false; fExecutiva = false;
   };
 
   if (editingId) {
@@ -4111,6 +4149,8 @@ function saveForm() {
         mkt,
         pix:          finalPix,
         direct,
+        malaDespachada,
+        executiva,
         dOut,
         dIn,
         link,
@@ -4153,6 +4193,8 @@ function saveForm() {
       mkt,
       pix:          finalPix,
       direct,
+      malaDespachada,
+      executiva,
       dOut,
       dIn,
       link,
@@ -4187,6 +4229,8 @@ function cancelForm() {
   fBoleto = false;
   fRegiao = '';
   fSchedTime = '';
+  fMalaDespachada = false;
+  fExecutiva = false;
   if (currentDetail) {
     render();
   } else {
@@ -4411,12 +4455,15 @@ let pkgSemJurosParc = 12;
 let pkgBoleto       = false;
 let pkgFornecedor   = '';
 let pkgNumPessoas   = 1;
-let pkgRegiao       = '';
-let pkgSchedTime    = '';
+let pkgRegiao          = '';
+let pkgSchedTime       = '';
+let pkgMalaDespachada  = false;
+let pkgExecutiva       = false;
 let pkgItems = {};
 function resetPkgState() {
   pkgSemJuros = false; pkgSemJurosParc = 12; pkgBoleto = false; pkgFornecedor = ''; pkgNumPessoas = 1;
   pkgRegiao = ''; pkgSchedTime = '';
+  pkgMalaDespachada = false; pkgExecutiva = false;
   pkgItems = {
     aereo:    { active: true,  label: 'Aéreo' },
     hotel:    { active: true,  label: 'hotel' },
@@ -4456,7 +4503,12 @@ function pkgGetNum(id) {
 function buildPackageWhatsApp(pkg) {
   const noites = pkg.noites || 0;
   const saindoDe = pkg.origin ? ` saindo de ${pkg.origin}` : '';
-  const vooDir   = pkg.direct ? ' | Voo Direto' : '';
+  const pkgExtras = [
+    pkg.direct         ? 'Voo Direto'     : '',
+    pkg.malaDespachada ? 'Mala Despachada' : '',
+    pkg.executiva      ? 'Executiva'       : '',
+  ].filter(Boolean).join(' | ');
+  const vooDir = pkgExtras ? ` | ${pkgExtras}` : '';
   let txt = `*${pkg.destino} — ${noites} noite${noites !== 1 ? 's' : ''}${saindoDe}${vooDir}*`;
 
   // Linha de itens
@@ -4485,6 +4537,7 @@ function buildPackageWhatsApp(pkg) {
   }
   if (pkg.boleto) {
     payLines.push(`*Boleto:* 1+9 de ${brl(pkg.valor / 10)}`);
+    payLines.push(`_Boleto disponível apenas para embarques com mais de 40 dias da data de emissão._`);
   }
   txt += '\n\n' + payLines.join('\n');
 
@@ -4689,12 +4742,28 @@ function renderPackageForm() {
               <input class="form-input" id="pkg-destino" type="text" placeholder="Ex: Búzios (e Arredores), Cancún, Orlando...">
             </div>
             <div class="form-section">
-              <div class="switch-wrap">
-                <label class="switch">
-                  <input type="checkbox" id="pkg-direct">
-                  <span class="slider"></span>
-                </label>
-                <span class="switch-label">Voo Direto</span>
+              <div style="display:flex;flex-wrap:wrap;gap:14px">
+                <div class="switch-wrap">
+                  <label class="switch">
+                    <input type="checkbox" id="pkg-direct">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="switch-label">Voo Direto</span>
+                </div>
+                <div class="switch-wrap">
+                  <label class="switch">
+                    <input type="checkbox" id="pkg-mala" ${pkgMalaDespachada ? 'checked' : ''} onchange="pkgMalaDespachada=this.checked">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="switch-label">Mala Despachada</span>
+                </div>
+                <div class="switch-wrap">
+                  <label class="switch">
+                    <input type="checkbox" id="pkg-executiva" ${pkgExecutiva ? 'checked' : ''} onchange="pkgExecutiva=this.checked">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="switch-label">Executiva</span>
+                </div>
               </div>
             </div>
           </div>
@@ -4891,6 +4960,12 @@ function initPkgForm() {
       if (blEl)  { blEl.checked = p.boleto;   pkgBoleto = p.boleto; }
       const dirEl = document.getElementById('pkg-direct');
       if (dirEl) { dirEl.checked = !!p.direct; }
+      pkgMalaDespachada = !!p.malaDespachada;
+      pkgExecutiva      = !!p.executiva;
+      const pkgMalaEl = document.getElementById('pkg-mala');
+      if (pkgMalaEl) pkgMalaEl.checked = pkgMalaDespachada;
+      const pkgExecEl = document.getElementById('pkg-executiva');
+      if (pkgExecEl) pkgExecEl.checked = pkgExecutiva;
       // Fornecedor
       pkgFornecedor = p.fornecedor || '';
       document.querySelectorAll('.pkg-forn-btn').forEach(b => {
@@ -4929,7 +5004,9 @@ function savePkg() {
   if (!destino) { showToast('Informe o nome do destino'); return; }
   const origin  = (document.getElementById('pkg-origin')?.value||'').trim();
   const dest    = (document.getElementById('pkg-dest')?.value||'').trim();
-  const direct  = document.getElementById('pkg-direct')?.checked || false;
+  const direct          = document.getElementById('pkg-direct')?.checked || false;
+  const malaDespachada  = document.getElementById('pkg-mala')?.checked || false;
+  const executiva       = document.getElementById('pkg-executiva')?.checked || false;
   // Datas: type="date" retorna YYYY-MM-DD → armazenar em DD/MM/YYYY
   const dOutIso = document.getElementById('pkg-dout')?.value || '';
   const dInIso  = document.getElementById('pkg-din')?.value  || '';
@@ -4953,7 +5030,7 @@ function savePkg() {
     ref: pkgEditingId
       ? loadPackages().find(x=>x.id===pkgEditingId)?.ref || getNextRef()
       : getNextRef(),
-    destino, origin, dest, direct, dOut, dIn, noites,
+    destino, origin, dest, direct, malaDespachada, executiva, dOut, dIn, noites,
     fornecedor: pkgFornecedor,
     valor, numPessoas, pixDesconto, custo, semJuros, semJurosParc, boleto, link,
     regiao, schedTime,
