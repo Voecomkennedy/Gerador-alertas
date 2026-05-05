@@ -2632,20 +2632,16 @@ function calcAlert(airline, miles, taxes, mktPrice, sellRate, pixOverride, type,
   const sellRevenue = sellRate > 0 ? (miles / 1000) * sellRate + taxes : 0;
   const sellProfit  = sellRevenue > 0 ? sellRevenue - totalCost : 0;
 
-  // Priority: pixOverride > sellRate (if profit ok) > minPix
+  // Priority: pixOverride > sellRate (sempre respeita) > minPix (só quando sem entrada manual)
   let finalPix;
-  let pixAdjusted = false; // sell rate foi ajustado para cima por causa do piso
+  let pixAdjusted = false; // sinaliza lucro abaixo do piso (só aviso, não bloqueia)
   if (pixOverride > 0) {
     finalPix = pixOverride;
   } else if (sellRevenue > 0) {
-    if (sellProfit >= floor) {
-      finalPix = sellRevenue;       // lucro ok — usa o preço calculado pela taxa
-    } else {
-      finalPix = minPix;            // lucro abaixo do piso — sobe para o mínimo
-      pixAdjusted = true;
-    }
+    finalPix = sellRevenue;         // respeita a taxa digitada, independente do piso
+    if (sellProfit < floor) pixAdjusted = true; // marca aviso, mas não altera o valor
   } else {
-    finalPix = minPix;              // nenhuma entrada — usa mínimo
+    finalPix = minPix;              // sem entrada manual — usa o mínimo como base
   }
 
   const profit  = finalPix - totalCost;
@@ -3979,8 +3975,8 @@ function updateCalc() {
       <span class="calc-val">${brl(c.minPix)}</span>
     </div>
     ${c.pixAdjusted ? `<div class="calc-row">
-      <span class="calc-lbl" style="color:var(--gold)">Pix ajustado (piso atingido)</span>
-      <span class="calc-val gold">${brl(c.finalPix)}</span>
+      <span class="calc-lbl" style="color:#f59e0b">⚠️ Lucro abaixo do piso mínimo</span>
+      <span class="calc-val" style="color:#f59e0b">${brl(c.profit)}</span>
     </div>` : `<div class="calc-row">
       <span class="calc-lbl">Pix final</span>
       <span class="calc-val gold">${brl(c.finalPix)}</span>
