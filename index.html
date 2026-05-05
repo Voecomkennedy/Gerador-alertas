@@ -2730,27 +2730,13 @@ function buildWhatsApp(alert) {
     ? (alert.airname || airlineName(alert.airline))
     : airlineName(alert.airline);
 
-  // Agrupa datas por mês: "Mai - 21/05/2026\nAgo - 05/08/2026,  12/08/2026"
+  // Passa as datas como digitadas; coloca negrito no mês no início de cada linha
   const normDates = (raw) => {
     if (!raw) return null;
-    const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    const parts = raw.split(/[\s,·\n]+/).map(d => d.trim()).filter(d => /^\d{2}\/\d{2}\/\d{4}$/.test(d));
-    if (!parts.length) return raw.trim();
-    // Ordenar por data
-    parts.sort((a, b) => {
-      const [da, ma, ya] = a.split('/').map(Number);
-      const [db, mb, yb] = b.split('/').map(Number);
-      return (ya - yb) || (ma - mb) || (da - db);
-    });
-    // Agrupar por mês/ano
-    const groups = new Map();
-    parts.forEach(d => {
-      const [, m, y] = d.split('/').map(Number);
-      const key = `${y}-${String(m).padStart(2,'0')}`;
-      if (!groups.has(key)) groups.set(key, { label: MESES[m-1], dates: [] });
-      groups.get(key).dates.push(d);
-    });
-    return Array.from(groups.values()).map(g => `${g.label} - ${g.dates.join(',  ')}`).join('\n');
+    const t = raw.trim();
+    if (!t.length) return null;
+    // "Nov - ..." → "*Nov* - ..."  (3–4 letras no início da linha seguidas de espaço/traço)
+    return t.replace(/^([A-ZÀ-Öa-zà-ö]{3,4})(\s*-)/gm, (_, m, sep) => `*${m[0].toUpperCase()}${m.slice(1)}*${sep}`);
   };
 
   // Helper: retorna só o número sem o prefixo "R$" (inclusive espaço não-quebrável) para usar dentro do tachado
@@ -3643,11 +3629,11 @@ function renderForm() {
             <div class="form-section">
               <div class="form-group">
                 <label class="form-label">Datas ida</label>
-                <input class="form-input" id="f-dout" type="text" placeholder="Mai 06, 27, 28" autocorrect="off">
+                <textarea class="form-input" id="f-dout" rows="3" placeholder="Nov - 01/11 · 06/11&#10;Fev - 17/02 · 19/02" autocorrect="off" spellcheck="false" style="resize:vertical;min-height:72px;font-family:inherit;line-height:1.5"></textarea>
               </div>
               <div class="form-group" style="margin-top:12px">
                 <label class="form-label">Datas volta</label>
-                <input class="form-input" id="f-din" type="text" placeholder="Mai 13 | Jun 03, 06" autocorrect="off">
+                <textarea class="form-input" id="f-din" rows="3" placeholder="Nov - 11/11 · 13/11&#10;Fev - 24/02 · 26/02" autocorrect="off" spellcheck="false" style="resize:vertical;min-height:72px;font-family:inherit;line-height:1.5"></textarea>
               </div>
             </div>
 
