@@ -2078,12 +2078,73 @@
 
 <input type="file" id="file-input" accept=".json">
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ─────────────────────────────────────────────
 // STORAGE
 // ─────────────────────────────────────────────
 const STORAGE_KEY  = 'vck_v3';
 const COUNTER_KEY  = 'vck_ctr';
+const SUPABASE_CONFIG_KEY = 'vck_supabase_config';
+const SUPABASE_SQL = `create table if not exists vck_alerts (
+  id text primary key,
+  ref text,
+  payload jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists vck_packages (
+  id text primary key,
+  ref text,
+  payload jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists vck_settings (
+  key text primary key,
+  payload jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists vck_ref_counters (
+  day text primary key,
+  n integer not null default 0
+);
+
+alter table vck_alerts disable row level security;
+alter table vck_packages disable row level security;
+alter table vck_settings disable row level security;
+alter table vck_ref_counters disable row level security;
+
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on vck_alerts to anon, authenticated;
+grant select, insert, update, delete on vck_packages to anon, authenticated;
+grant select, insert, update, delete on vck_settings to anon, authenticated;
+grant select, insert, update, delete on vck_ref_counters to anon, authenticated;
+
+create or replace function next_vck_ref()
+returns text
+language plpgsql
+as $$
+declare
+  today text := to_char(now() at time zone 'America/Sao_Paulo', 'DDMM');
+  next_n integer;
+begin
+  insert into vck_ref_counters(day, n)
+  values (today, 1)
+  on conflict (day)
+  do update set n = vck_ref_counters.n + 1
+  returning n into next_n;
+
+  return today || '-' || lpad(next_n::text, 2, '0');
+end;
+$$;
+
+grant execute on function next_vck_ref() to anon, authenticated;`;
+
+let cloudStatus = { state: 'idle', message: 'Nuvem nao configurada' };
+let supabaseClientCache = null;
+let supabaseClientSig = '';
 
 function loadAlerts() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
@@ -2130,6 +2191,269 @@ function loadMileTable() {
 
 function saveMileTable(table) {
   localStorage.setItem(MILE_TABLE_KEY, JSON.stringify(table));
+}
+
+function getSupabaseConfig() {
+  try {
+    const cfg = JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY) || '{}');
+    return {
+      url: (cfg.url || '').trim(),
+      anonKey: (cfg.anonKey || '').trim(),
+    };
+  } catch {
+    return { url: '', anonKey: '' };
+  }
+}
+
+function normalizeSupabaseUrl(raw) {
+  return String(raw || '').trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/g, '');
+}
+
+function validateSupabaseUrl(url) {
+  if (!url) return 'Preencha a URL do Supabase';
+  if (url.includes('...')) return 'Cole a URL completa do Supabase, sem reticencias (...)';
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:') return 'A URL do Supabase precisa comecar com https://';
+    if (!u.hostname.endsWith('.supabase.co')) return 'A URL deve terminar com .supabase.co';
+  } catch {
+    return 'URL do Supabase invalida';
+  }
+  return '';
+}
+
+function saveSupabaseConfigFromForm() {
+  const url = normalizeSupabaseUrl(document.getElementById('sb-url')?.value || '');
+  const anonKey = (document.getElementById('sb-anon')?.value || '').trim();
+  const urlError = validateSupabaseUrl(url);
+  if (urlError) {
+    setCloudStatus('error', urlError);
+    showToast(urlError);
+    return;
+  }
+  if (!anonKey) {
+    showToast('Preencha a anon key do Supabase');
+    return;
+  }
+  localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url, anonKey }));
+  supabaseClientCache = null;
+  setCloudStatus('idle', 'Conexao salva. Clique em sincronizar.');
+  showToast('Conexao Supabase salva');
+  render();
+}
+
+function clearSupabaseConfig() {
+  localStorage.removeItem(SUPABASE_CONFIG_KEY);
+  supabaseClientCache = null;
+  setCloudStatus('idle', 'Nuvem nao configurada');
+  showToast('Conexao removida');
+  render();
+}
+
+function setCloudStatus(state, message) {
+  cloudStatus = { state, message };
+  const el = document.getElementById('cloud-status-text');
+  if (el) el.textContent = message;
+}
+
+function cloudErrorMessage(err, fallback) {
+  if (err?.message === 'Failed to fetch') {
+    return 'Nao consegui acessar a URL do Supabase. Confira se copiou a URL completa e exatamente igual ao projeto.';
+  }
+  return err?.message || err?.details || err?.hint || fallback;
+}
+
+function getSupabaseClient() {
+  const cfg = getSupabaseConfig();
+  if (!cfg.url || !cfg.anonKey) return null;
+  if (!window.supabase || !window.supabase.createClient) return null;
+  const sig = cfg.url + '|' + cfg.anonKey;
+  if (!supabaseClientCache || supabaseClientSig !== sig) {
+    supabaseClientCache = window.supabase.createClient(cfg.url, cfg.anonKey);
+    supabaseClientSig = sig;
+  }
+  return supabaseClientCache;
+}
+
+function itemTime(item) {
+  return Number(item.updatedAt || item.ts || 0);
+}
+
+function stampItem(item) {
+  return { ...item, updatedAt: Date.now() };
+}
+
+function mergeByNewest(localItems, cloudItems) {
+  const map = new Map();
+  [...(localItems || []), ...(cloudItems || [])].forEach(item => {
+    if (!item || !item.id) return;
+    const prev = map.get(item.id);
+    if (!prev || itemTime(item) >= itemTime(prev)) map.set(item.id, item);
+  });
+  return [...map.values()].sort((a, b) => itemTime(b) - itemTime(a));
+}
+
+function fromCloudRows(rows) {
+  return (rows || []).map(row => {
+    const payload = row.payload || {};
+    const cloudTime = row.updated_at ? Date.parse(row.updated_at) : 0;
+    return {
+      ...payload,
+      id: payload.id || row.id,
+      ref: payload.ref || row.ref || '',
+      updatedAt: Math.max(Number(payload.updatedAt || payload.ts || 0), cloudTime || 0),
+    };
+  });
+}
+
+function toCloudRow(item) {
+  const payload = stampItem(item);
+  return {
+    id: payload.id,
+    ref: payload.ref || '',
+    payload,
+    updated_at: new Date(payload.updatedAt).toISOString(),
+  };
+}
+
+async function upsertCloudRows(table, items) {
+  const client = getSupabaseClient();
+  if (!client || !items.length) return;
+  const { error } = await client.from(table).upsert(items.map(toCloudRow), { onConflict: 'id' });
+  if (error) throw error;
+}
+
+async function upsertCloudAlert(alert) {
+  await upsertCloudRows('vck_alerts', [alert]);
+}
+
+async function upsertCloudPackage(pkg) {
+  await upsertCloudRows('vck_packages', [pkg]);
+}
+
+async function deleteCloudAlert(id) {
+  const client = getSupabaseClient();
+  if (!client) return;
+  const { error } = await client.from('vck_alerts').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function deleteCloudPackage(id) {
+  const client = getSupabaseClient();
+  if (!client) return;
+  const { error } = await client.from('vck_packages').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function saveCloudMileTable(table) {
+  const client = getSupabaseClient();
+  if (!client) return;
+  const payload = { ...table, updatedAt: Date.now() };
+  const { error } = await client.from('vck_settings').upsert({
+    key: 'mile_table',
+    payload,
+    updated_at: new Date(payload.updatedAt).toISOString(),
+  }, { onConflict: 'key' });
+  if (error) throw error;
+}
+
+async function syncFromCloud() {
+  const cfg = getSupabaseConfig();
+  if (!cfg.url || !cfg.anonKey) {
+    setCloudStatus('idle', 'Nuvem nao configurada');
+    return false;
+  }
+  if (!window.supabase || !window.supabase.createClient) {
+    setCloudStatus('error', 'Biblioteca Supabase nao carregou. Verifique a internet.');
+    return false;
+  }
+  const client = getSupabaseClient();
+  if (!client) {
+    setCloudStatus('error', 'Conexao Supabase indisponivel');
+    return false;
+  }
+
+  setCloudStatus('syncing', 'Sincronizando com Supabase...');
+  const [alertsRes, pkgsRes, settingsRes] = await Promise.all([
+    client.from('vck_alerts').select('*'),
+    client.from('vck_packages').select('*'),
+    client.from('vck_settings').select('*').eq('key', 'mile_table').maybeSingle(),
+  ]);
+  if (alertsRes.error) throw alertsRes.error;
+  if (pkgsRes.error) throw pkgsRes.error;
+  if (settingsRes.error) throw settingsRes.error;
+
+  const mergedAlerts = mergeByNewest(loadAlerts(), fromCloudRows(alertsRes.data));
+  const mergedPkgs = mergeByNewest(loadPackages(), fromCloudRows(pkgsRes.data));
+  saveAlerts(mergedAlerts);
+  savePackages(mergedPkgs);
+
+  const cloudMileTable = settingsRes.data?.payload;
+  if (cloudMileTable && cloudMileTable.carriers) {
+    const localTable = loadMileTable();
+    const cloudTime = Number(cloudMileTable.updatedAt || (settingsRes.data.updated_at ? Date.parse(settingsRes.data.updated_at) : 0));
+    const localTime = Number(localTable.updatedAt || 0);
+    if (cloudTime >= localTime) saveMileTable(cloudMileTable);
+  }
+
+  await syncToCloud(false);
+  setCloudStatus('ok', `Sincronizado em ${formatTs(Date.now())}`);
+  return true;
+}
+
+async function syncToCloud(showOk) {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  await upsertCloudRows('vck_alerts', loadAlerts());
+  await upsertCloudRows('vck_packages', loadPackages());
+  await saveCloudMileTable(loadMileTable());
+  if (showOk) setCloudStatus('ok', `Sincronizado em ${formatTs(Date.now())}`);
+  return true;
+}
+
+async function syncNow() {
+  try {
+    const ok = await syncFromCloud();
+    render();
+    showToast(ok ? 'Sincronizacao concluida' : cloudStatus.message);
+  } catch (err) {
+    console.error(err);
+    const msg = cloudErrorMessage(err, 'Erro ao sincronizar. Confira tabelas, URL e anon key.');
+    setCloudStatus('error', msg);
+    showToast('Erro ao sincronizar Supabase');
+  }
+}
+
+function queueCloudOp(promise, errorMessage) {
+  promise.catch(err => {
+    console.error(err);
+    setCloudStatus('error', cloudErrorMessage(err, errorMessage));
+    showToast(errorMessage);
+  });
+}
+
+async function getNextRefCloudSafe() {
+  const client = getSupabaseClient();
+  if (!client) return getNextRef();
+  try {
+    const { data, error } = await client.rpc('next_vck_ref');
+    if (error) throw error;
+    return data || getNextRef();
+  } catch (err) {
+    console.error(err);
+    showToast('Falha na ref da nuvem; usando ref local');
+    return getNextRef();
+  }
+}
+
+async function clearCloudAll() {
+  const client = getSupabaseClient();
+  if (!client) return;
+  await Promise.all([
+    client.from('vck_alerts').delete().neq('id', '__never__'),
+    client.from('vck_packages').delete().neq('id', '__never__'),
+    client.from('vck_settings').delete().neq('key', '__never__'),
+  ]);
 }
 
 function getNextRef() {
@@ -3508,6 +3832,7 @@ function deleteAlert(id) {
   let alerts = loadAlerts();
   alerts = alerts.filter(a => a.id !== id);
   saveAlerts(alerts);
+  queueCloudOp(deleteCloudAlert(id), 'Alerta excluido localmente, mas falhou na nuvem');
   currentDetail = null;
   showToast('Alerta excluido');
   render();
@@ -4182,7 +4507,9 @@ function saveMileTableFromText() {
   if (!el) return;
   try {
     const carriers = parseMileTableText(el.value);
-    saveMileTable({ updatedAt: Date.now(), rawText: el.value.trim(), carriers });
+    const table = { updatedAt: Date.now(), rawText: el.value.trim(), carriers };
+    saveMileTable(table);
+    queueCloudOp(saveCloudMileTable(table), 'Tabela salva localmente, mas falhou na nuvem');
     showToast('Tabela de milhas atualizada');
     render();
   } catch {
@@ -4191,7 +4518,9 @@ function saveMileTableFromText() {
 }
 
 function resetMileTableToDefault() {
-  saveMileTable(getDefaultMileTable());
+  const table = { ...getDefaultMileTable(), updatedAt: Date.now() };
+  saveMileTable(table);
+  queueCloudOp(saveCloudMileTable(table), 'Tabela restaurada localmente, mas falhou na nuvem');
   showToast('Tabela padrao restaurada');
   render();
 }
@@ -4393,7 +4722,7 @@ function setFilterRegiao(r) {
   renderAlertList();
 }
 
-function saveForm() {
+async function saveForm() {
   const origin   = (document.getElementById('f-origin')?.value || '').trim();
   const dest     = (document.getElementById('f-dest')?.value   || '').trim();
   const mkt      = getNum('f-mkt');
@@ -4449,7 +4778,7 @@ function saveForm() {
   if (editingId) {
     const idx = alerts.findIndex(a => a.id === editingId);
     if (idx >= 0) {
-      alerts[idx] = {
+      alerts[idx] = stampItem({
         ...alerts[idx],
         airline:      fAirline,
         airname,
@@ -4478,8 +4807,9 @@ function saveForm() {
         boleto,
         regiao,
         schedTime,
-      };
+      });
       saveAlerts(alerts);
+      queueCloudOp(upsertCloudAlert(alerts[idx]), 'Alerta salvo localmente, mas falhou na nuvem');
       showToast('Alerta atualizado');
       editingId = null;
       currentPage = 'list';
@@ -4491,8 +4821,8 @@ function saveForm() {
       setTimeout(() => { renderAlertList(); }, 0);
     }
   } else {
-    const ref = getNextRef();
-    const newAlert = {
+    const ref = await getNextRefCloudSafe();
+    const newAlert = stampItem({
       id:           genId(),
       ref,
       airline:      fAirline,
@@ -4523,9 +4853,10 @@ function saveForm() {
       regiao,
       schedTime,
       ts:           Date.now(),
-    };
+    });
     alerts.push(newAlert);
     saveAlerts(alerts);
+    queueCloudOp(upsertCloudAlert(newAlert), 'Alerta salvo localmente, mas falhou na nuvem');
     showToast(`Alerta ${ref} criado!`);
     resetFormState();
     setPage('list');
@@ -4560,6 +4891,9 @@ function cancelForm() {
 function renderBackup() {
   const alerts   = loadAlerts();
   const packages = loadPackages();
+  const sbCfg = getSupabaseConfig();
+  const cloudConfigured = !!(sbCfg.url && sbCfg.anonKey);
+  const cloudTone = cloudStatus.state === 'ok' ? 'positive' : (cloudStatus.state === 'error' ? 'risk' : (cloudConfigured ? 'warn' : 'default'));
   const subDesc  = [
     `${alerts.length} alerta${alerts.length !== 1 ? 's' : ''}`,
     `${packages.length} pacote${packages.length !== 1 ? 's' : ''}`,
@@ -4584,6 +4918,36 @@ function renderBackup() {
             <span class="mini-chip default"><strong>${packages.length}</strong> pacotes</span>
           </div>
         </aside>
+      </div>
+
+      <div class="section-card">
+        <div class="section-eyebrow">Armazenamento em nuvem</div>
+        <div class="section-note" style="margin-bottom:16px">Configure seu projeto Supabase para manter alertas, pacotes e tabela de milhas salvos na nuvem. O painel continua funcionando localmente se a conexão falhar.</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Supabase URL</label>
+            <input class="form-input" id="sb-url" type="url" placeholder="https://xxxx.supabase.co" value="${escAttr(sbCfg.url)}" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Anon key</label>
+            <input class="form-input" id="sb-anon" type="password" placeholder="eyJ..." value="${escAttr(sbCfg.anonKey)}" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px">
+          <button class="btn-sm btn-gold" onclick="saveSupabaseConfigFromForm()">Salvar conexão</button>
+          <button class="btn-sm btn-ghost" onclick="syncNow()" ${cloudConfigured ? '' : 'disabled style="opacity:0.45;cursor:not-allowed"'}>Sincronizar agora</button>
+          <button class="btn-sm btn-ghost" onclick="clearSupabaseConfig()" ${cloudConfigured ? '' : 'disabled style="opacity:0.45;cursor:not-allowed"'}>Remover conexão</button>
+          <span class="mini-chip ${cloudTone}" id="cloud-status-text">${cloudStatus.message}</span>
+        </div>
+        <div class="support-text" style="margin-top:14px">Antes de sincronizar, crie as tabelas e a função <strong>next_vck_ref()</strong> no SQL Editor do Supabase com o script abaixo.</div>
+      </div>
+
+      <div class="copy-block">
+        <div class="copy-block-top">
+          <div class="copy-block-title">SQL Supabase</div>
+          <button class="btn-sm btn-gold" onclick="copyText(SUPABASE_SQL, this)">Copiar SQL</button>
+        </div>
+        <div class="copy-text">${escHtml(SUPABASE_SQL)}</div>
       </div>
 
       <div class="backup-grid">
@@ -4717,6 +5081,7 @@ function importReplace(alerts, packages, mileTable) {
   saveAlerts(alerts);
   savePackages(packages);
   if (mileTable) saveMileTable(mileTable);
+  queueCloudOp(syncToCloud(false), 'Importado localmente, mas falhou na nuvem');
   const parts = [
     alerts.length   ? `${alerts.length} alerta${alerts.length !== 1 ? 's' : ''}`     : null,
     packages.length ? `${packages.length} pacote${packages.length !== 1 ? 's' : ''}` : null,
@@ -4737,6 +5102,7 @@ function importMerge(incomingAlerts, incomingPkgs, incomingMileTable) {
   const toAddPkgs = incomingPkgs.filter(p => !existPkgIds.has(p.id));
   savePackages([...existPkgs, ...toAddPkgs]);
   if (incomingMileTable) saveMileTable(incomingMileTable);
+  queueCloudOp(syncToCloud(false), 'Importado localmente, mas falhou na nuvem');
 
   const parts = [
     toAddAlerts.length ? `${toAddAlerts.length} alerta${toAddAlerts.length !== 1 ? 's' : ''}` : null,
@@ -4764,6 +5130,7 @@ function clearAll() {
   localStorage.removeItem(PKG_KEY);
   localStorage.removeItem(MILE_TABLE_KEY);
   localStorage.removeItem(MILE_COST_KEY);
+  queueCloudOp(clearCloudAll(), 'Dados apagados localmente, mas falhou na nuvem');
   showToast('Dados apagados');
   render();
 }
@@ -5323,7 +5690,7 @@ function initPkgForm() {
     });
   }
 }
-function savePkg() {
+async function savePkg() {
   const destino = (document.getElementById('pkg-destino')?.value||'').trim();
   if (!destino) { showToast('Informe o nome do destino'); return; }
   const origin  = (document.getElementById('pkg-origin')?.value||'').trim();
@@ -5349,17 +5716,19 @@ function savePkg() {
   const schedTime  = (document.getElementById('pkg-schedtime')?.value || '').trim();
   const ITEM_KEYS  = ['aereo','hotel','transfer','seguro','ingresso','extra'];
 
-  const pkg = {
+  const pkgRef = pkgEditingId
+    ? loadPackages().find(x=>x.id===pkgEditingId)?.ref || await getNextRefCloudSafe()
+    : await getNextRefCloudSafe();
+
+  const pkg = stampItem({
     id: pkgEditingId || ('p' + Date.now()),
-    ref: pkgEditingId
-      ? loadPackages().find(x=>x.id===pkgEditingId)?.ref || getNextRef()
-      : getNextRef(),
+    ref: pkgRef,
     destino, origin, dest, direct, malaDespachada, executiva, dOut, dIn, noites,
     fornecedor: pkgFornecedor,
     valor, numPessoas, pixDesconto, custo, semJuros, semJurosParc, boleto, link,
     regiao, schedTime,
     ts: Date.now(),
-  };
+  });
   ITEM_KEYS.forEach(k => {
     const inp = document.getElementById('pkg-label-'+k);
     pkg['i_'+k] = pkgItems[k].active;
@@ -5375,6 +5744,7 @@ function savePkg() {
     showToast('Pacote salvo!');
   }
   savePackages(pkgs);
+  queueCloudOp(upsertCloudPackage(pkg), 'Pacote salvo localmente, mas falhou na nuvem');
   pkgEditingId = null;
   resetPkgState();
   currentPage = 'pacotes';
@@ -5549,6 +5919,7 @@ function confirmDeletePkg(id) {
 function deletePkg(id) {
   let pkgs = loadPackages().filter(p => p.id !== id);
   savePackages(pkgs);
+  queueCloudOp(deleteCloudPackage(id), 'Pacote excluido localmente, mas falhou na nuvem');
   pkgCurrentDetail = null;
   showToast('Pacote excluído');
   currentPage = 'pacotes';
@@ -5559,6 +5930,10 @@ function deletePkg(id) {
 // BOOT
 // ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  const cfg = getSupabaseConfig();
+  if (cfg.url && cfg.anonKey) {
+    setCloudStatus('idle', 'Conexao Supabase salva');
+  }
   render();
   // Render alert list after list page is painted
   setTimeout(() => {
@@ -5573,6 +5948,23 @@ window.addEventListener('DOMContentLoaded', () => {
       renderAlertList();
     }
   }, 0);
+  if (cfg.url && cfg.anonKey) {
+    syncFromCloud()
+      .then(ok => {
+        if (ok) {
+          render();
+          setTimeout(() => {
+            if (currentPage === 'list' && !currentDetail) renderAlertList();
+          }, 0);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        setCloudStatus('error', cloudErrorMessage(err, 'Erro ao sincronizar Supabase ao abrir'));
+        showToast('Erro ao sincronizar Supabase');
+        render();
+      });
+  }
 });
 </script>
 </body>
