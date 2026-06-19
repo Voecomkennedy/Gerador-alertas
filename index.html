@@ -3741,7 +3741,14 @@ function renderForm() {
             <div class="form-section">
               <div class="form-group">
                 <label class="form-label">Link cia</label>
-                <input class="form-input" id="f-link" type="url" placeholder="https://..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" oninput="sanitizeLinkInput()">
+                <div class="form-row">
+                  <div class="form-group">
+                    <input class="form-input" id="f-link" type="url" placeholder="https://..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" oninput="sanitizeLinkInput()">
+                  </div>
+                  <div class="form-group" style="flex:0 0 160px">
+                    <button class="btn-sm btn-gold" id="shorten-link-btn" style="width:100%;min-height:56px" onclick="shortenAirlineLink(this)">Encurtar link</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -3934,6 +3941,47 @@ function sanitizeLinkInput() {
   if (!el) return;
   const cleaned = sanitizeLink(el.value);
   if (cleaned !== el.value) el.value = cleaned;
+}
+
+function isShortLink(url) {
+  return /^https?:\/\/(?:da\.gd|tinyurl\.com|bit\.ly|is\.gd|t\.ly)\//i.test(url);
+}
+
+async function shortenAirlineLink(btn) {
+  const el = document.getElementById('f-link');
+  if (!el) return;
+  const original = sanitizeLink(el.value || '');
+  if (!original || !/^https?:\/\//i.test(original)) {
+    showToast('Cole um link valido da cia antes de encurtar');
+    return;
+  }
+  if (isShortLink(original)) {
+    showToast('Esse link ja parece estar encurtado');
+    return;
+  }
+
+  const oldText = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Encurtando...';
+  }
+
+  try {
+    const res = await fetch('https://da.gd/s?url=' + encodeURIComponent(original));
+    if (!res.ok) throw new Error('shortener_error');
+    const shortUrl = (await res.text()).trim();
+    if (!/^https?:\/\//i.test(shortUrl)) throw new Error('invalid_short_url');
+    el.value = shortUrl;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    showToast('Link encurtado');
+  } catch {
+    showToast('Nao consegui encurtar agora. Tente novamente.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = oldText || 'Encurtar link';
+    }
+  }
 }
 
 function getNum(id) {
