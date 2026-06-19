@@ -2829,12 +2829,12 @@ function buildWhatsApp(alert) {
     ? (alert.airname || airlineName(alert.airline))
     : airlineName(alert.airline);
 
-  // Passa as datas exatamente como digitadas.
+  // Passa as datas como digitadas; coloca negrito no mês no início de cada linha.
   const normDates = (raw) => {
     if (!raw) return null;
     const t = raw.trim();
     if (!t.length) return null;
-    return t;
+    return t.replace(/^([A-ZÀ-Öa-zà-ö]{3,4})(\s*-)/gm, (_, m, sep) => `*${m[0].toUpperCase()}${m.slice(1)}*${sep}`);
   };
 
   // Helper: retorna só o número sem o prefixo "R$" (inclusive espaço não-quebrável) para usar dentro do tachado
@@ -2845,8 +2845,8 @@ function buildWhatsApp(alert) {
     alert.malaDespachada ? 'Mala Despachada'   : '',
     alert.executiva      ? 'Executiva'         : '',
   ].filter(Boolean).join(' | ');
-  let txt = `${alert.origin} → ${alert.dest}${extrasLine ? ' | ' + extrasLine : ''}`;
-  txt += `\n\n${aName} | Preço final com taxas`;
+  let txt = `*${alert.origin} → ${alert.dest}${extrasLine ? ' | ' + extrasLine : ''}*`;
+  txt += `\n\n*${aName}* | Preço final com taxas`;
   if (alert.paymentMode === 'avista' && alert.pixDesconto > 0) {
     // Modo Valor Direto COM valor no Pix — cartão fica com preço cheio
     const pixPrice  = alert.pixDesconto; // IS o preço real no Pix
@@ -2876,20 +2876,20 @@ function buildWhatsApp(alert) {
   }
   const dOut = normDates(alert.dOut);
   if (dOut) {
-    txt += `\n\n📅 Datas de ida disponíveis:`;
+    txt += `\n\n📅 *Datas de ida disponíveis:*`;
     txt += `\n${dOut}`;
   }
   const dIn = normDates(alert.dIn);
   if (dIn) {
-    txt += `\n\n📅 Datas de volta disponíveis:`;
+    txt += `\n\n📅 *Datas de volta disponíveis:*`;
     txt += `\n${dIn}`;
   }
-  txt += `\n\n👉 Para emitir: só me encaminhar a referência no privado.`;
+  txt += `\n\n👉 *Para emitir*: só me encaminhar a referência no privado.`;
   if (ciaLink) {
-    txt += `\n\nJá tem milhas? -> Link direto para Cia aérea: ${ciaLink}`;
+    txt += `\n\n*Já tem milhas?* -> Link direto para Cia aérea: ${ciaLink}`;
   }
   txt += `\n\nSujeito à disponibilidade. | Ref: ${alert.ref}`;
-  txt += `\nVoeComKennedy`;
+  txt += `\n_VoeComKennedy_`;
   return txt;
 }
 
